@@ -13,6 +13,7 @@ class TimerSettings extends Equatable {
   final bool enableLastSecondsAlert;
   final int lastSecondsThreshold;
   final SavageLevel savageLevel;
+  final double volume; // 0.0 = mute, 1.0 = max
 
   const TimerSettings({
     this.roundDurationSeconds = 180, // 3 minutes
@@ -21,7 +22,10 @@ class TimerSettings extends Equatable {
     this.enableLastSecondsAlert = true,
     this.lastSecondsThreshold = 30,
     this.savageLevel = SavageLevel.level2,
+    this.volume = 0.8,
   });
+
+  bool get isMuted => volume == 0.0;
 
   TimerSettings copyWith({
     int? roundDurationSeconds,
@@ -30,6 +34,7 @@ class TimerSettings extends Equatable {
     bool? enableLastSecondsAlert,
     int? lastSecondsThreshold,
     SavageLevel? savageLevel,
+    double? volume,
   }) {
     return TimerSettings(
       roundDurationSeconds: roundDurationSeconds ?? this.roundDurationSeconds,
@@ -39,6 +44,7 @@ class TimerSettings extends Equatable {
           enableLastSecondsAlert ?? this.enableLastSecondsAlert,
       lastSecondsThreshold: lastSecondsThreshold ?? this.lastSecondsThreshold,
       savageLevel: savageLevel ?? this.savageLevel,
+      volume: volume ?? this.volume,
     );
   }
 
@@ -50,6 +56,7 @@ class TimerSettings extends Equatable {
       'enableLastSecondsAlert': enableLastSecondsAlert,
       'lastSecondsThreshold': lastSecondsThreshold,
       'savageLevel': savageLevel.index,
+      'volume': volume,
     };
   }
 
@@ -61,6 +68,7 @@ class TimerSettings extends Equatable {
       enableLastSecondsAlert: json['enableLastSecondsAlert'] as bool? ?? true,
       lastSecondsThreshold: json['lastSecondsThreshold'] as int? ?? 30,
       savageLevel: SavageLevel.values[json['savageLevel'] as int? ?? 1],
+      volume: (json['volume'] as num?)?.toDouble() ?? 0.8,
     );
   }
 
@@ -72,5 +80,6 @@ class TimerSettings extends Equatable {
     enableLastSecondsAlert,
     lastSecondsThreshold,
     savageLevel,
+    volume,
   ];
 }

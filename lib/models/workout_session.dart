@@ -50,6 +50,14 @@ class WorkoutSession extends Equatable {
     return phase == SessionPhase.round ? 'ROUND $currentRound' : 'REST';
   }
 
+  int get totalDurationSeconds => totalRounds * roundDurationSeconds;
+
+  String get formattedTotalDuration {
+    final minutes = totalDurationSeconds ~/ 60;
+    final seconds = totalDurationSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
   WorkoutSession copyWith({
     int? currentRound,
     SessionPhase? phase,

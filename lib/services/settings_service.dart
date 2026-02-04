@@ -61,6 +61,11 @@ class SettingsService extends StateNotifier<TimerSettings> {
     _saveSettings();
   }
 
+  void updateVolume(double volume) {
+    state = state.copyWith(volume: volume.clamp(0.0, 1.0));
+    _saveSettings();
+  }
+
   void resetToDefaults() {
     state = const TimerSettings();
     _saveSettings();
