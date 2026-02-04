@@ -47,6 +47,8 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   mockito: ^5.4.4
   build_runner: ^2.4.9
+  flutter_native_splash: ^2.4.0
+  flutter_launcher_icons: ^0.14.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -59,9 +61,9 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # Uncomment when you add sound files (bell.mp3, warning.mp3)
-  # assets:
-  #   - assets/sounds/
+  assets:
+    - assets/images/
+    - assets/sounds/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -88,3 +90,32 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Flutter Native Splash configuration
+flutter_native_splash:
+  color: "#1a1a2e"
+  image: assets/images/savage_timer_logo.png
+
+  # Android 12+ specific settings
+  android_12:
+    color: "#1a1a2e"
+    image: assets/images/savage_timer_logo.png
+
+  # iOS settings
+  ios: true
+
+  # Android settings
+  android: true
+
+  # Keep the splash screen until manually removed (for loading)
+  fullscreen: true
+
+# Flutter Launcher Icons configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/savage_timer_logo.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#1a1a2e"
+  adaptive_icon_foreground: "assets/images/savage_timer_logo.png"
+  remove_alpha_ios: true
