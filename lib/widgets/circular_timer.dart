@@ -17,7 +17,7 @@ class CircularTimer extends StatelessWidget {
     this.progressColor = Colors.red,
     this.backgroundColor = Colors.grey,
     this.size = 280,
-    this.strokeWidth = 12,
+    this.strokeWidth = 18,
   });
 
   @override
@@ -40,8 +40,8 @@ class CircularTimer extends StatelessWidget {
           Text(
             time,
             style: TextStyle(
-              fontSize: size * 0.25,
-              fontWeight: FontWeight.bold,
+              fontSize: size * 0.22,
+              fontWeight: FontWeight.w900,
               fontFamily: 'monospace',
               color: Colors.white,
             ),

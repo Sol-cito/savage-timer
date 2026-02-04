@@ -6,6 +6,7 @@ class ControlButton extends StatelessWidget {
   final Color backgroundColor;
   final Color iconColor;
   final double size;
+  final String? label;
 
   const ControlButton({
     super.key,
@@ -14,11 +15,12 @@ class ControlButton extends StatelessWidget {
     this.backgroundColor = Colors.white,
     this.iconColor = Colors.black,
     this.size = 64,
+    this.label,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    final button = Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onPressed,
@@ -51,6 +53,29 @@ class ControlButton extends StatelessWidget {
         ),
       ),
     );
+
+    if (label == null) {
+      return button;
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        button,
+        const SizedBox(height: 8),
+        Text(
+          label!,
+          style: TextStyle(
+            color:
+                onPressed != null
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.5),
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -58,12 +83,14 @@ class PlayPauseButton extends StatelessWidget {
   final bool isPlaying;
   final VoidCallback? onPressed;
   final double size;
+  final bool showLabel;
 
   const PlayPauseButton({
     super.key,
     required this.isPlaying,
     this.onPressed,
     this.size = 80,
+    this.showLabel = false,
   });
 
   @override
@@ -74,6 +101,7 @@ class PlayPauseButton extends StatelessWidget {
       backgroundColor: isPlaying ? Colors.orange : Colors.green,
       iconColor: Colors.white,
       size: size,
+      label: showLabel ? (isPlaying ? 'Pause' : 'Start') : null,
     );
   }
 }

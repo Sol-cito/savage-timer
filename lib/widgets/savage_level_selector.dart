@@ -14,37 +14,40 @@ class SavageLevelSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SegmentedButton<SavageLevel>(
-      segments: const [
-        ButtonSegment(
-          value: SavageLevel.level1,
-          label: Text('Mild'),
-          icon: Icon(Icons.sentiment_satisfied),
+    return SizedBox(
+      width: double.infinity,
+      child: SegmentedButton<SavageLevel>(
+        segments: const [
+          ButtonSegment(
+            value: SavageLevel.level1,
+            label: Text('Mild'),
+            icon: Icon(Icons.sentiment_satisfied),
+          ),
+          ButtonSegment(
+            value: SavageLevel.level2,
+            label: Text('Medium'),
+            icon: Icon(Icons.sentiment_neutral),
+          ),
+          ButtonSegment(
+            value: SavageLevel.level3,
+            label: Text('Savage'),
+            icon: Icon(Icons.whatshot),
+          ),
+        ],
+        selected: {selectedLevel},
+        onSelectionChanged: (Set<SavageLevel> newSelection) {
+          onChanged(newSelection.first);
+        },
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith<Color?>((
+            Set<WidgetState> states,
+          ) {
+            if (states.contains(WidgetState.selected)) {
+              return _getLevelColor(selectedLevel);
+            }
+            return null;
+          }),
         ),
-        ButtonSegment(
-          value: SavageLevel.level2,
-          label: Text('Medium'),
-          icon: Icon(Icons.sentiment_neutral),
-        ),
-        ButtonSegment(
-          value: SavageLevel.level3,
-          label: Text('Savage'),
-          icon: Icon(Icons.whatshot),
-        ),
-      ],
-      selected: {selectedLevel},
-      onSelectionChanged: (Set<SavageLevel> newSelection) {
-        onChanged(newSelection.first);
-      },
-      style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.resolveWith<Color?>((
-          Set<WidgetState> states,
-        ) {
-          if (states.contains(WidgetState.selected)) {
-            return _getLevelColor(selectedLevel);
-          }
-          return null;
-        }),
       ),
     );
   }
