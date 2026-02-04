@@ -37,7 +37,7 @@ class SettingsScreen extends ConsumerWidget {
               },
             ),
           ),
-          const SizedBox(height: 24),
+          _buildDivider(),
 
           // Rest Duration
           _buildSection(
@@ -54,7 +54,7 @@ class SettingsScreen extends ConsumerWidget {
               },
             ),
           ),
-          const SizedBox(height: 24),
+          _buildDivider(),
 
           // Total Rounds
           _buildSection(
@@ -88,7 +88,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 IconButton(
                   onPressed:
-                      settings.totalRounds < 12
+                      settings.totalRounds < 20
                           ? () => settingsService.updateTotalRounds(
                             settings.totalRounds + 1,
                           )
@@ -100,34 +100,66 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          _buildDivider(),
 
           // Last Seconds Alert
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  'Last 30s alert ${settings.enableLastSecondsAlert ? 'enabled' : 'disabled'}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Switch(
+                value: settings.enableLastSecondsAlert,
+                onChanged: (value) {
+                  settingsService.updateLastSecondsAlert(value);
+                },
+                activeColor: Colors.red,
+              ),
+            ],
+          ),
+          _buildDivider(),
+
+          // Volume
           _buildSection(
-            title: 'Last 30 Seconds Alert',
-            child: SwitchListTile(
-              value: settings.enableLastSecondsAlert,
-              onChanged: (value) {
-                settingsService.updateLastSecondsAlert(value);
-              },
-              title: Text(
-                settings.enableLastSecondsAlert ? 'Enabled' : 'Disabled',
-                style: const TextStyle(color: Colors.white),
-              ),
-              subtitle: Text(
-                'Alert when ${settings.lastSecondsThreshold} seconds remain',
-                style: TextStyle(color: Colors.grey[400]),
-              ),
-              activeColor: Colors.red,
-              contentPadding: EdgeInsets.zero,
+            title: 'Volume',
+            value: settings.isMuted ? 'Muted' : '${(settings.volume * 100).round()}%',
+            child: Row(
+              children: [
+                Icon(
+                  settings.isMuted ? Icons.volume_off : Icons.volume_up,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                Expanded(
+                  child: Slider(
+                    value: settings.volume,
+                    min: 0.0,
+                    max: 1.0,
+                    divisions: 10,
+                    label: settings.isMuted ? 'Muted' : '${(settings.volume * 100).round()}%',
+                    onChanged: (value) {
+                      settingsService.updateVolume(value);
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
+          _buildDivider(),
 
           // Savage Level
           _buildSection(
             title: 'Savage Level',
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SavageLevelSelector(
                   selectedLevel: settings.savageLevel,
@@ -140,7 +172,7 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 32),
+          _buildDivider(),
 
           // Reset button
           OutlinedButton.icon(
@@ -191,6 +223,16 @@ class SettingsScreen extends ConsumerWidget {
         const SizedBox(height: 8),
         child,
       ],
+    );
+  }
+
+  Widget _buildDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Divider(
+        color: Colors.grey[700],
+        thickness: 1,
+      ),
     );
   }
 

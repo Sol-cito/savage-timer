@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/timer_settings.dart';
 import '../models/workout_session.dart';
+import '../services/settings_service.dart';
 import '../services/timer_service.dart';
 import '../widgets/circular_timer.dart';
 import '../widgets/control_button.dart';
@@ -14,6 +16,7 @@ class TimerScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(timerServiceProvider);
     final timerService = ref.read(timerServiceProvider.notifier);
+    final settings = ref.watch(settingsServiceProvider);
 
     return Scaffold(
       body: AnimatedContainer(
@@ -30,13 +33,24 @@ class TimerScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
+                // Total duration
+                Text(
+                  'Total ${session.formattedTotalDuration}',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white.withValues(alpha: 0.8),
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 // Phase label
                 Text(
                   session.phaseLabel,
                   style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 40,
+                    fontWeight: FontWeight.w900,
                     color: Colors.white,
                     letterSpacing: 4,
                   ),
@@ -47,6 +61,27 @@ class TimerScreen extends ConsumerWidget {
                   totalRounds: session.totalRounds,
                   currentRound: session.currentRound,
                   isResting: session.isResting,
+                ),
+                const SizedBox(height: 12),
+                // Mode indicator
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _getSavageLevelIcon(settings.savageLevel),
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _getSavageLevelName(settings.savageLevel),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
                 const Spacer(),
                 // Circular timer
@@ -76,6 +111,7 @@ class TimerScreen extends ConsumerWidget {
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Reset button
         ControlButton(
@@ -87,11 +123,13 @@ class TimerScreen extends ConsumerWidget {
           backgroundColor: Colors.white.withValues(alpha: 0.2),
           iconColor: Colors.white,
           size: 56,
+          label: 'Reset',
         ),
         const SizedBox(width: 32),
         // Play/Pause button
         PlayPauseButton(
           isPlaying: isRunning,
+          showLabel: true,
           onPressed: () {
             if (isIdle || isCompleted) {
               timerService.start();
@@ -103,7 +141,7 @@ class TimerScreen extends ConsumerWidget {
           },
         ),
         const SizedBox(width: 32),
-        // Placeholder for symmetry
+        // Placeholder for symmetry (matching reset button width + label)
         const SizedBox(width: 56),
       ],
     );
@@ -137,5 +175,27 @@ class TimerScreen extends ConsumerWidget {
       return Colors.orange;
     }
     return Colors.red;
+  }
+
+  String _getSavageLevelName(SavageLevel level) {
+    switch (level) {
+      case SavageLevel.level1:
+        return 'Mild';
+      case SavageLevel.level2:
+        return 'Medium';
+      case SavageLevel.level3:
+        return 'Savage';
+    }
+  }
+
+  IconData _getSavageLevelIcon(SavageLevel level) {
+    switch (level) {
+      case SavageLevel.level1:
+        return Icons.sentiment_satisfied;
+      case SavageLevel.level2:
+        return Icons.sentiment_neutral;
+      case SavageLevel.level3:
+        return Icons.whatshot;
+    }
   }
 }
