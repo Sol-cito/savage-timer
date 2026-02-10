@@ -5,6 +5,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 class AudioService {
   final AudioPlayer _bellPlayer = AudioPlayer();
   final AudioPlayer _warningPlayer = AudioPlayer();
+  final AudioPlayer _voicePlayer = AudioPlayer();
   final FlutterTts _tts = FlutterTts();
 
   DateTime? _lastQuoteTime;
@@ -81,6 +82,16 @@ class AudioService {
     await _tts.speak(quote);
   }
 
+  Future<void> playMotivationVoice(String assetPath) async {
+    try {
+      await _voicePlayer.stop();
+      await _voicePlayer.setSource(AssetSource(assetPath));
+      await _voicePlayer.resume();
+    } catch (e) {
+      // Voice file not available, silently fail
+    }
+  }
+
   void resetQuoteCooldown() {
     _lastQuoteTime = null;
   }
@@ -89,12 +100,14 @@ class AudioService {
     await _tts.stop();
     await _bellPlayer.stop();
     await _warningPlayer.stop();
+    await _voicePlayer.stop();
   }
 
   Future<void> dispose() async {
     await stop();
     await _bellPlayer.dispose();
     await _warningPlayer.dispose();
+    await _voicePlayer.dispose();
   }
 }
 
