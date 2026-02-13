@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class CircularTimer extends StatelessWidget {
   final String time;
@@ -39,10 +40,9 @@ class CircularTimer extends StatelessWidget {
           ),
           Text(
             time,
-            style: TextStyle(
-              fontSize: size * 0.22,
-              fontWeight: FontWeight.w900,
-              fontFamily: 'monospace',
+            style: GoogleFonts.oswald(
+              fontSize: size * 0.25,
+              fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
           ),

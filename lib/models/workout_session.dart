@@ -50,11 +50,60 @@ class WorkoutSession extends Equatable {
     return phase == SessionPhase.round ? 'ROUND $currentRound' : 'REST';
   }
 
-  int get totalDurationSeconds => totalRounds * roundDurationSeconds;
+  int get totalDurationSeconds =>
+      totalRounds * roundDurationSeconds +
+      (totalRounds - 1) * restDurationSeconds;
 
   String get formattedTotalDuration {
     final minutes = totalDurationSeconds ~/ 60;
     final seconds = totalDurationSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  int get elapsedSeconds {
+    if (state == SessionState.idle) return 0;
+    if (state == SessionState.completed) return totalDurationSeconds;
+    if (phase == SessionPhase.round) {
+      return (currentRound - 1) * (roundDurationSeconds + restDurationSeconds) +
+          (roundDurationSeconds - remainingSeconds);
+    } else {
+      return currentRound * roundDurationSeconds +
+          (currentRound - 1) * restDurationSeconds +
+          (restDurationSeconds - remainingSeconds);
+    }
+  }
+
+  String get formattedElapsed {
+    final minutes = elapsedSeconds ~/ 60;
+    final seconds = elapsedSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  String? get nextPhaseLabel {
+    if (state == SessionState.idle || state == SessionState.completed) {
+      return null;
+    }
+    if (phase == SessionPhase.round) {
+      return isLastRound ? 'Finish' : 'Rest';
+    }
+    return 'Round ${currentRound + 1}';
+  }
+
+  int? get nextPhaseDurationSeconds {
+    if (state == SessionState.idle || state == SessionState.completed) {
+      return null;
+    }
+    if (phase == SessionPhase.round) {
+      return isLastRound ? null : restDurationSeconds;
+    }
+    return roundDurationSeconds;
+  }
+
+  String? get formattedNextPhaseDuration {
+    final duration = nextPhaseDurationSeconds;
+    if (duration == null) return null;
+    final minutes = duration ~/ 60;
+    final seconds = duration % 60;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 

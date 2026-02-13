@@ -66,6 +66,11 @@ class SettingsService extends StateNotifier<TimerSettings> {
     _saveSettings();
   }
 
+  void updateMotivationalSound(bool enabled) {
+    state = state.copyWith(enableMotivationalSound: enabled);
+    _saveSettings();
+  }
+
   void resetToDefaults() {
     state = const TimerSettings();
     _saveSettings();

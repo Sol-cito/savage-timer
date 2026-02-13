@@ -1,30 +1,41 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/timer_settings.dart';
 import '../models/workout_session.dart';
-import '../utils/motivation_quotes.dart';
 import 'audio_service.dart';
 import 'settings_service.dart';
 import 'vibration_service.dart';
 
 class TimerService extends StateNotifier<WorkoutSession> {
   Timer? _timer;
+  Timer? _startVoiceTimer;
+  Timer? _restVoiceTimer;
+  final List<Timer> _exerciseVoiceTimers = [];
   final AudioService _audioService;
   final VibrationService _vibrationService;
   TimerSettings _settings;
+  final Random _random;
 
   bool _lastSecondsAlertTriggered = false;
-  bool _midRoundQuoteTriggered = false;
+
+  /// Bell duration in seconds — voices are delayed by this to avoid overlap.
+  static const _bellDurationSeconds = 3;
+
+  /// Max assumed voice clip duration in seconds.
+  static const _voiceBufferSeconds = 8;
 
   TimerService({
     required AudioService audioService,
     required VibrationService vibrationService,
     required TimerSettings settings,
+    Random? random,
   }) : _audioService = audioService,
        _vibrationService = vibrationService,
        _settings = settings,
+       _random = random ?? Random(),
        super(
          WorkoutSession(
            totalRounds: settings.totalRounds,
@@ -57,20 +68,38 @@ class TimerService extends StateNotifier<WorkoutSession> {
     state = state.copyWith(state: SessionState.running);
     _startTimer();
 
-    // Play round start sound and quote
-    _audioService.playBell();
-    _vibrationService.roundStart();
-    _audioService.speakQuoteForced(
-      MotivationQuotes.getRandomQuote(
-        _settings.savageLevel,
-        QuoteSituation.roundStart,
-      ),
+    // Play count_start and vibration
+    _audioService.playCountStart(
+      _settings.savageLevel,
+      _settings.enableMotivationalSound,
     );
+    _vibrationService.roundStart();
+
+    // Schedule start voice after count_start finishes (avoid overlap)
+    if (_settings.enableMotivationalSound) {
+      _startVoiceTimer?.cancel();
+      _startVoiceTimer = Timer(
+        const Duration(seconds: _bellDurationSeconds),
+        () {
+          if (state.state == SessionState.running &&
+              state.phase == SessionPhase.round) {
+            _audioService.playRandomStartVoice(_settings.savageLevel);
+          }
+        },
+      );
+    }
+
+    // Schedule exercise voices (after bell + start voice gap)
+    _scheduleExerciseVoices();
   }
 
   void pause() {
     if (state.state != SessionState.running) return;
     _timer?.cancel();
+    _startVoiceTimer?.cancel();
+    _restVoiceTimer?.cancel();
+    _cancelExerciseVoiceTimers();
+    _audioService.stop();
     state = state.copyWith(state: SessionState.paused);
   }
 
@@ -82,14 +111,15 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
   void reset() {
     _timer?.cancel();
+    _startVoiceTimer?.cancel();
+    _restVoiceTimer?.cancel();
+    _cancelExerciseVoiceTimers();
     _audioService.stop();
     _resetState();
   }
 
   void _resetState() {
     _lastSecondsAlertTriggered = false;
-    _midRoundQuoteTriggered = false;
-    _audioService.resetQuoteCooldown();
 
     state = WorkoutSession(
       totalRounds: _settings.totalRounds,
@@ -110,33 +140,22 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
     final newRemaining = state.remainingSeconds - 1;
 
-    // Check for last seconds alert
+    // Check for last seconds alert (bell sound + vibration)
     if (_settings.enableLastSecondsAlert &&
         !_lastSecondsAlertTriggered &&
         state.phase == SessionPhase.round &&
         newRemaining == _settings.lastSecondsThreshold) {
       _lastSecondsAlertTriggered = true;
-      _audioService.playWarning();
+      _audioService.playBell();
       _vibrationService.lastSecondsAlert();
-      _audioService.speakQuoteForced(
-        MotivationQuotes.getRandomQuote(
-          _settings.savageLevel,
-          QuoteSituation.roundFinal,
-        ),
-      );
     }
 
-    // Check for mid-round quote (at 50% of round time)
-    if (!_midRoundQuoteTriggered &&
-        state.phase == SessionPhase.round &&
-        newRemaining <= state.roundDurationSeconds ~/ 2 &&
-        newRemaining > _settings.lastSecondsThreshold) {
-      _midRoundQuoteTriggered = true;
-      _audioService.speakQuote(
-        MotivationQuotes.getRandomQuote(
-          _settings.savageLevel,
-          QuoteSituation.roundMid,
-        ),
+    // Countdown sounds at 3, 2, 1
+    if (newRemaining >= 1 && newRemaining <= 3) {
+      _audioService.playCount(
+        newRemaining,
+        _settings.savageLevel,
+        _settings.enableMotivationalSound,
       );
     }
 
@@ -149,57 +168,146 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
   void _handlePhaseEnd() {
     if (state.phase == SessionPhase.round) {
-      // Round ended
-      _audioService.playBell();
+      // Round ended — cancel any remaining voice timers
+      _cancelExerciseVoiceTimers();
+      _startVoiceTimer?.cancel();
       _vibrationService.roundEnd();
 
       if (state.isLastRound) {
-        // Workout complete
+        // Workout complete — play count_finish
+        _audioService.playCountFinish(
+          _settings.savageLevel,
+          _settings.enableMotivationalSound,
+        );
         _timer?.cancel();
         _vibrationService.sessionComplete();
-        _audioService.speakQuoteForced("Workout complete! Great job!");
         state = state.copyWith(
           state: SessionState.completed,
           remainingSeconds: 0,
         );
       } else {
-        // Start rest period
-        _lastSecondsAlertTriggered = false;
-        _midRoundQuoteTriggered = false;
-        _audioService.speakQuote(
-          MotivationQuotes.getRandomQuote(
-            _settings.savageLevel,
-            QuoteSituation.restTime,
-          ),
+        // Start rest period — play count_rest
+        _audioService.playCountRest(
+          _settings.savageLevel,
+          _settings.enableMotivationalSound,
         );
+        _lastSecondsAlertTriggered = false;
         state = state.copyWith(
           phase: SessionPhase.rest,
           remainingSeconds: _settings.restDurationSeconds,
         );
+
+        // Play a random rest voice after count_rest finishes
+        if (_settings.enableMotivationalSound) {
+          _restVoiceTimer?.cancel();
+          _restVoiceTimer = Timer(
+            const Duration(seconds: _bellDurationSeconds),
+            () {
+              if (state.phase == SessionPhase.rest &&
+                  state.state == SessionState.running) {
+                _audioService.playRandomRestVoice(_settings.savageLevel);
+              }
+            },
+          );
+        }
       }
     } else {
-      // Rest ended, start next round
-      _audioService.playBell();
+      // Rest ended, start next round — play count_start
+      _audioService.playCountStart(
+        _settings.savageLevel,
+        _settings.enableMotivationalSound,
+      );
       _vibrationService.restEnd();
       _lastSecondsAlertTriggered = false;
-      _midRoundQuoteTriggered = false;
-      _audioService.speakQuoteForced(
-        MotivationQuotes.getRandomQuote(
-          _settings.savageLevel,
-          QuoteSituation.roundStart,
-        ),
-      );
       state = state.copyWith(
         phase: SessionPhase.round,
         currentRound: state.currentRound + 1,
         remainingSeconds: _settings.roundDurationSeconds,
       );
+
+      // Schedule start voice after count_start finishes
+      if (_settings.enableMotivationalSound) {
+        _startVoiceTimer?.cancel();
+        _startVoiceTimer = Timer(
+          const Duration(seconds: _bellDurationSeconds),
+          () {
+            if (state.state == SessionState.running &&
+                state.phase == SessionPhase.round) {
+              _audioService.playRandomStartVoice(_settings.savageLevel);
+            }
+          },
+        );
+      }
+
+      _scheduleExerciseVoices();
     }
+  }
+
+  /// Schedules 2–4 exercise voice clips at random times during the current
+  /// round. The first clip starts after the bell + start voice gap. The last
+  /// clip finishes before the round ends (using an 8-second buffer).
+  void _scheduleExerciseVoices() {
+    _cancelExerciseVoiceTimers();
+
+    if (!_settings.enableMotivationalSound) return;
+
+    final roundDuration = _settings.roundDurationSeconds;
+    // Leave room for bell + start voice + voice buffer at the start
+    final minStartDelay = _bellDurationSeconds + _voiceBufferSeconds;
+    final maxPlayTime = roundDuration - _voiceBufferSeconds;
+
+    if (maxPlayTime <= minStartDelay) return; // round too short
+
+    final availableWindow = maxPlayTime - minStartDelay;
+
+    // Target voice count based on round duration:
+    // ≤90s → 2, ≤180s → 3, >180s → 4
+    int targetCount;
+    if (roundDuration <= 90) {
+      targetCount = 2;
+    } else if (roundDuration <= 180) {
+      targetCount = 3;
+    } else {
+      targetCount = 4;
+    }
+
+    // Limit by available space (need ≥12s per voice to avoid overlap)
+    final voiceCount = min(targetCount, availableWindow ~/ 12);
+
+    if (voiceCount <= 0) return;
+
+    final segmentLength = availableWindow / voiceCount;
+
+    for (int i = 0; i < voiceCount; i++) {
+      final segmentStart = minStartDelay + (segmentLength * i).round();
+      final segmentEnd = minStartDelay + (segmentLength * (i + 1)).round();
+      final range = segmentEnd - segmentStart;
+      final playTime = segmentStart + (range > 0 ? _random.nextInt(range) : 0);
+
+      _exerciseVoiceTimers.add(
+        Timer(Duration(seconds: playTime), () {
+          if (state.phase == SessionPhase.round &&
+              state.state == SessionState.running) {
+            _audioService.playRandomExerciseVoice(_settings.savageLevel);
+          }
+        }),
+      );
+    }
+  }
+
+  void _cancelExerciseVoiceTimers() {
+    for (final timer in _exerciseVoiceTimers) {
+      timer.cancel();
+    }
+    _exerciseVoiceTimers.clear();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _startVoiceTimer?.cancel();
+    _restVoiceTimer?.cancel();
+    _cancelExerciseVoiceTimers();
     super.dispose();
   }
 }

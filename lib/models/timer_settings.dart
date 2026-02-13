@@ -14,6 +14,7 @@ class TimerSettings extends Equatable {
   final int lastSecondsThreshold;
   final SavageLevel savageLevel;
   final double volume; // 0.0 = mute, 1.0 = max
+  final bool enableMotivationalSound;
 
   const TimerSettings({
     this.roundDurationSeconds = 180, // 3 minutes
@@ -23,6 +24,7 @@ class TimerSettings extends Equatable {
     this.lastSecondsThreshold = 30,
     this.savageLevel = SavageLevel.level2,
     this.volume = 0.8,
+    this.enableMotivationalSound = true,
   });
 
   bool get isMuted => volume == 0.0;
@@ -35,6 +37,7 @@ class TimerSettings extends Equatable {
     int? lastSecondsThreshold,
     SavageLevel? savageLevel,
     double? volume,
+    bool? enableMotivationalSound,
   }) {
     return TimerSettings(
       roundDurationSeconds: roundDurationSeconds ?? this.roundDurationSeconds,
@@ -45,6 +48,8 @@ class TimerSettings extends Equatable {
       lastSecondsThreshold: lastSecondsThreshold ?? this.lastSecondsThreshold,
       savageLevel: savageLevel ?? this.savageLevel,
       volume: volume ?? this.volume,
+      enableMotivationalSound:
+          enableMotivationalSound ?? this.enableMotivationalSound,
     );
   }
 
@@ -57,6 +62,7 @@ class TimerSettings extends Equatable {
       'lastSecondsThreshold': lastSecondsThreshold,
       'savageLevel': savageLevel.index,
       'volume': volume,
+      'enableMotivationalSound': enableMotivationalSound,
     };
   }
 
@@ -69,6 +75,8 @@ class TimerSettings extends Equatable {
       lastSecondsThreshold: json['lastSecondsThreshold'] as int? ?? 30,
       savageLevel: SavageLevel.values[json['savageLevel'] as int? ?? 1],
       volume: (json['volume'] as num?)?.toDouble() ?? 0.8,
+      enableMotivationalSound:
+          json['enableMotivationalSound'] as bool? ?? true,
     );
   }
 
@@ -81,5 +89,6 @@ class TimerSettings extends Equatable {
     lastSecondsThreshold,
     savageLevel,
     volume,
+    enableMotivationalSound,
   ];
 }

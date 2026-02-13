@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../models/timer_settings.dart';
 import '../models/workout_session.dart';
@@ -8,6 +9,7 @@ import '../services/timer_service.dart';
 import '../widgets/circular_timer.dart';
 import '../widgets/control_button.dart';
 import '../widgets/round_indicator.dart';
+import '../widgets/up_next_card.dart';
 
 class TimerScreen extends ConsumerWidget {
   const TimerScreen({super.key});
@@ -17,6 +19,7 @@ class TimerScreen extends ConsumerWidget {
     final session = ref.watch(timerServiceProvider);
     final timerService = ref.read(timerServiceProvider.notifier);
     final settings = ref.watch(settingsServiceProvider);
+    final hasUpNext = session.nextPhaseLabel != null;
 
     return Scaffold(
       body: AnimatedContainer(
@@ -25,76 +28,102 @@ class TimerScreen extends ConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: _getBackgroundColors(session),
+            colors: _getBackgroundColors(
+              session,
+              settings.savageLevel,
+              settings.enableMotivationalSound,
+            ),
           ),
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Column(
               children: [
-                const SizedBox(height: 12),
-                // Total duration
+                // Total duration and elapsed
                 Text(
-                  'Total ${session.formattedTotalDuration}',
-                  style: TextStyle(
-                    fontSize: 20,
+                  'Total ${session.formattedTotalDuration} | Elapsed ${session.formattedElapsed}',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: Colors.white.withValues(alpha: 0.8),
                     letterSpacing: 1,
                   ),
                 ),
-                const SizedBox(height: 16),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  height: hasUpNext ? 4 : 10,
+                ),
                 // Phase label
                 Text(
                   session.phaseLabel,
-                  style: const TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.w900,
+                  style: GoogleFonts.oswald(
+                    fontSize: 44,
+                    fontWeight: FontWeight.w700,
                     color: Colors.white,
                     letterSpacing: 4,
                   ),
                 ),
-                const SizedBox(height: 8),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  height: hasUpNext ? 15 : 30,
+                ),
                 // Round indicator
                 RoundIndicator(
                   totalRounds: session.totalRounds,
                   currentRound: session.currentRound,
                   isResting: session.isResting,
                 ),
-                const SizedBox(height: 12),
-                // Mode indicator
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _getSavageLevelIcon(settings.savageLevel),
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _getSavageLevelName(settings.savageLevel),
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  height: hasUpNext ? 20 : 40,
                 ),
+                // Mode indicator (only when motivational voice is on)
+                if (settings.enableMotivationalSound)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _getSavageLevelIcon(settings.savageLevel),
+                        color: _getSavageLevelColor(settings.savageLevel),
+                        size: 36,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _getSavageLevelName(settings.savageLevel),
+                        style: GoogleFonts.oswald(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: _getSavageLevelColor(settings.savageLevel),
+                        ),
+                      ),
+                    ],
+                  ),
                 const Spacer(),
-                // Circular timer
+                // Circular timer — fixed at 280
                 CircularTimer(
                   time: session.formattedTime,
                   progress: session.progress,
-                  progressColor: _getProgressColor(session),
+                  progressColor: _getProgressColor(
+                    session,
+                    settings.savageLevel,
+                    settings.enableMotivationalSound,
+                  ),
                   backgroundColor: Colors.white,
                 ),
+                if (session.nextPhaseLabel != null) ...[
+                  const SizedBox(height: 20),
+                  UpNextCard(
+                    phaseLabel: session.nextPhaseLabel!,
+                    duration: session.formattedNextPhaseDuration,
+                  ),
+                ],
                 const Spacer(),
                 // Control buttons
                 _buildControls(session, timerService),
-                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -111,7 +140,7 @@ class TimerScreen extends ConsumerWidget {
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // Reset button
         ControlButton(
@@ -147,7 +176,11 @@ class TimerScreen extends ConsumerWidget {
     );
   }
 
-  List<Color> _getBackgroundColors(WorkoutSession session) {
+  List<Color> _getBackgroundColors(
+    WorkoutSession session,
+    SavageLevel level,
+    bool motivationalOn,
+  ) {
     if (session.state == SessionState.completed) {
       return [Colors.green.shade900, Colors.green.shade700];
     }
@@ -157,14 +190,39 @@ class TimerScreen extends ConsumerWidget {
     if (session.isResting) {
       return [Colors.green.shade900, Colors.teal.shade800];
     }
-    // Round phase - red gradient, more intense in last seconds
-    if (session.isInLastSeconds) {
-      return [Colors.red.shade900, Colors.orange.shade800];
+    // Neutral mode — muted blue-grey
+    if (!motivationalOn) {
+      if (session.isInLastSeconds) {
+        return [Colors.blueGrey.shade900, Colors.orange.shade900];
+      }
+      return [Colors.blueGrey.shade900, Colors.blueGrey.shade700];
     }
-    return [Colors.red.shade900, Colors.red.shade700];
+    // Round phase - gradient based on savage level
+    if (session.isInLastSeconds) {
+      switch (level) {
+        case SavageLevel.level1:
+          return [Colors.blue.shade900, Colors.orange.shade800];
+        case SavageLevel.level2:
+          return [Colors.amber.shade900, Colors.orange.shade800];
+        case SavageLevel.level3:
+          return [Colors.red.shade900, Colors.orange.shade800];
+      }
+    }
+    switch (level) {
+      case SavageLevel.level1:
+        return [Colors.blue.shade900, Colors.blue.shade700];
+      case SavageLevel.level2:
+        return [Colors.amber.shade900, Colors.amber.shade700];
+      case SavageLevel.level3:
+        return [Colors.red.shade900, Colors.red.shade700];
+    }
   }
 
-  Color _getProgressColor(WorkoutSession session) {
+  Color _getProgressColor(
+    WorkoutSession session,
+    SavageLevel level,
+    bool motivationalOn,
+  ) {
     if (session.state == SessionState.completed) {
       return Colors.green;
     }
@@ -174,7 +232,17 @@ class TimerScreen extends ConsumerWidget {
     if (session.isInLastSeconds) {
       return Colors.orange;
     }
-    return Colors.red;
+    if (!motivationalOn) {
+      return Colors.blueGrey.shade300;
+    }
+    switch (level) {
+      case SavageLevel.level1:
+        return Colors.lightBlueAccent;
+      case SavageLevel.level2:
+        return Colors.amber;
+      case SavageLevel.level3:
+        return Colors.red;
+    }
   }
 
   String _getSavageLevelName(SavageLevel level) {
@@ -191,11 +259,22 @@ class TimerScreen extends ConsumerWidget {
   IconData _getSavageLevelIcon(SavageLevel level) {
     switch (level) {
       case SavageLevel.level1:
-        return Icons.sentiment_satisfied;
+        return Icons.spa;
       case SavageLevel.level2:
-        return Icons.sentiment_neutral;
+        return Icons.fitness_center;
       case SavageLevel.level3:
         return Icons.whatshot;
+    }
+  }
+
+  Color _getSavageLevelColor(SavageLevel level) {
+    switch (level) {
+      case SavageLevel.level1:
+        return Colors.lightBlueAccent;
+      case SavageLevel.level2:
+        return Colors.yellowAccent;
+      case SavageLevel.level3:
+        return Colors.redAccent;
     }
   }
 }
