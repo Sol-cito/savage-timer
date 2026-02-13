@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/workout_session.dart';
 import '../services/audio_service.dart';
@@ -349,6 +350,30 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 32),
+
+            // Legal links
+            Divider(
+              color: Colors.white.withValues(alpha: 0.08),
+              thickness: 1,
+            ),
+            const SizedBox(height: 16),
+            _SectionHeader(
+              title: 'LEGAL',
+              icon: Icons.gavel_rounded,
+            ),
+            const SizedBox(height: 12),
+            _LegalLinkTile(
+              icon: Icons.shield_outlined,
+              label: 'Privacy Policy',
+              url: 'https://sol-cito.github.io/savage-timer/privacy_policy.html',
+            ),
+            const SizedBox(height: 8),
+            _LegalLinkTile(
+              icon: Icons.description_outlined,
+              label: 'Terms of Service',
+              url: 'https://sol-cito.github.io/savage-timer/terms_of_service.html',
+            ),
           ],
         ),
       ),
@@ -608,6 +633,70 @@ class _ToggleRow extends StatelessWidget {
             inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LegalLinkTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String url;
+
+  const _LegalLinkTile({
+    required this.icon,
+    required this.label,
+    required this.url,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          launchUrl(
+            Uri.parse(url),
+            mode: LaunchMode.externalApplication,
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.white.withValues(alpha: 0.05),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: Colors.white.withValues(alpha: 0.5),
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.open_in_new_rounded,
+                color: Colors.white.withValues(alpha: 0.3),
+                size: 16,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
