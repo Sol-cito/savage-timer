@@ -33,6 +33,11 @@ class FakeAudioService implements AudioService {
   }
 
   @override
+  Future<void> play30SecBell() async {
+    calls.add('play30SecBell');
+  }
+
+  @override
   Future<void> speakQuote(String quote) async {
     calls.add('speakQuote');
   }
@@ -801,7 +806,7 @@ void main() {
   });
 
   group('TimerService last seconds alert', () {
-    test('bell fires during round with lastSecondsAlert enabled', () {
+    test('30sec bell fires during round with lastSecondsAlert enabled', () {
       fakeAsync((async) {
         final service = createService(
           roundDuration: 60,
@@ -813,15 +818,15 @@ void main() {
         fakeAudio.clearCounters();
 
         // Advance to exactly the lastSecondsThreshold (default 30)
-        // At tick 30, remainingSeconds becomes 30 → triggers bell
+        // At tick 30, remainingSeconds becomes 30 → triggers 30sec bell
         async.elapse(const Duration(seconds: 30));
-        expect(fakeAudio.calls, contains('playBell'));
+        expect(fakeAudio.calls, contains('play30SecBell'));
 
         service.reset();
       });
     });
 
-    test('bell fires even when motivational sound is off', () {
+    test('30sec bell fires even when motivational sound is off', () {
       fakeAsync((async) {
         final service = createService(
           roundDuration: 60,
@@ -833,7 +838,7 @@ void main() {
         fakeAudio.clearCounters();
 
         async.elapse(const Duration(seconds: 30));
-        expect(fakeAudio.calls, contains('playBell'));
+        expect(fakeAudio.calls, contains('play30SecBell'));
 
         // But no voices
         expect(fakeAudio.startVoiceCount, 0);
@@ -843,7 +848,7 @@ void main() {
       });
     });
 
-    test('bell does not fire when lastSecondsAlert is disabled', () {
+    test('30sec bell does not fire when lastSecondsAlert is disabled', () {
       fakeAsync((async) {
         final service = TimerService(
           audioService: fakeAudio,
@@ -859,13 +864,13 @@ void main() {
         fakeAudio.clearCounters();
 
         async.elapse(const Duration(seconds: 60));
-        expect(fakeAudio.calls, isNot(contains('playBell')));
+        expect(fakeAudio.calls, isNot(contains('play30SecBell')));
 
         service.reset();
       });
     });
 
-    test('bell fires only once per round', () {
+    test('30sec bell fires only once per round', () {
       fakeAsync((async) {
         final service = createService(
           roundDuration: 60,
@@ -877,7 +882,7 @@ void main() {
 
         async.elapse(const Duration(seconds: 60));
         final bellCount =
-            fakeAudio.calls.where((c) => c == 'playBell').length;
+            fakeAudio.calls.where((c) => c == 'play30SecBell').length;
         expect(bellCount, 1);
 
         service.reset();

@@ -73,6 +73,17 @@ class AudioService {
     await _tts.speak('Warning!');
   }
 
+  Future<void> play30SecBell() async {
+    try {
+      await _warningPlayer.stop();
+      await _warningPlayer.setSource(AssetSource('sounds/30sec_bell.mp3'));
+      await _warningPlayer.resume();
+    } catch (e) {
+      // Fall back to generic bell
+      await playBell();
+    }
+  }
+
   Future<void> speakQuote(String quote) async {
     final now = DateTime.now();
     if (_lastQuoteTime != null &&

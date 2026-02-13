@@ -146,7 +146,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
         state.phase == SessionPhase.round &&
         newRemaining == _settings.lastSecondsThreshold) {
       _lastSecondsAlertTriggered = true;
-      _audioService.playBell();
+      _audioService.play30SecBell();
       _vibrationService.lastSecondsAlert();
     }
 
