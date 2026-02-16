@@ -21,6 +21,10 @@ class TimerScreen extends ConsumerWidget {
     final settings = ref.watch(settingsServiceProvider);
     final hasUpNext = session.nextPhaseLabel != null;
 
+    // Scale factor based on screen height (designed for ~852pt)
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final s = (screenHeight / 852).clamp(0.65, 1.0);
+
     return Scaffold(
       body: AnimatedContainer(
         duration: const Duration(milliseconds: 500),
@@ -37,14 +41,14 @@ class TimerScreen extends ConsumerWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12 * s),
             child: Column(
               children: [
                 // Total duration and elapsed
                 Text(
                   'Total ${session.formattedTotalDuration} | Elapsed ${session.formattedElapsed}',
                   style: GoogleFonts.rajdhani(
-                    fontSize: 22,
+                    fontSize: 18 * s + 2,
                     fontWeight: FontWeight.w700,
                     color: Colors.white.withValues(alpha: 0.8),
                     letterSpacing: 1,
@@ -53,13 +57,13 @@ class TimerScreen extends ConsumerWidget {
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
-                  height: hasUpNext ? 4 : 10,
+                  height: (hasUpNext ? 4 : 10) * s,
                 ),
                 // Phase label
                 Text(
                   session.phaseLabel,
                   style: GoogleFonts.oswald(
-                    fontSize: 44,
+                    fontSize: 36 * s + 4,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                     letterSpacing: 4,
@@ -68,7 +72,7 @@ class TimerScreen extends ConsumerWidget {
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
-                  height: hasUpNext ? 15 : 30,
+                  height: (hasUpNext ? 10 : 20) * s,
                 ),
                 // Round indicator
                 RoundIndicator(
@@ -79,7 +83,7 @@ class TimerScreen extends ConsumerWidget {
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
-                  height: hasUpNext ? 20 : 40,
+                  height: (hasUpNext ? 12 : 24) * s,
                 ),
                 // Mode indicator (only when motivational voice is on)
                 if (settings.enableMotivationalSound)
@@ -89,13 +93,13 @@ class TimerScreen extends ConsumerWidget {
                       Icon(
                         _getSavageLevelIcon(settings.savageLevel),
                         color: _getSavageLevelColor(settings.savageLevel),
-                        size: 36,
+                        size: 28 * s + 4,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         _getSavageLevelName(settings.savageLevel),
                         style: GoogleFonts.oswald(
-                          fontSize: 24,
+                          fontSize: 18 * s + 4,
                           fontWeight: FontWeight.w600,
                           color: _getSavageLevelColor(settings.savageLevel),
                         ),
@@ -103,7 +107,7 @@ class TimerScreen extends ConsumerWidget {
                     ],
                   ),
                 const Spacer(),
-                // Circular timer — fixed at 280
+                // Circular timer — scales with screen
                 CircularTimer(
                   time: session.formattedTime,
                   progress: session.progress,
@@ -113,9 +117,11 @@ class TimerScreen extends ConsumerWidget {
                     settings.enableMotivationalSound,
                   ),
                   backgroundColor: Colors.white,
+                  size: 220 * s + 30,
+                  strokeWidth: 14 * s + 2,
                 ),
                 if (session.nextPhaseLabel != null) ...[
-                  const SizedBox(height: 20),
+                  SizedBox(height: 14 * s),
                   UpNextCard(
                     phaseLabel: session.nextPhaseLabel!,
                     duration: session.formattedNextPhaseDuration,
@@ -123,7 +129,7 @@ class TimerScreen extends ConsumerWidget {
                 ],
                 const Spacer(),
                 // Control buttons
-                _buildControls(session, timerService),
+                _buildControls(session, timerService, s),
               ],
             ),
           ),
@@ -132,11 +138,18 @@ class TimerScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildControls(WorkoutSession session, TimerService timerService) {
+  Widget _buildControls(
+    WorkoutSession session,
+    TimerService timerService,
+    double s,
+  ) {
     final isRunning = session.state == SessionState.running;
     final isPaused = session.state == SessionState.paused;
     final isIdle = session.state == SessionState.idle;
     final isCompleted = session.state == SessionState.completed;
+
+    final resetSize = 40 * s + 12;
+    final playSize = 56 * s + 18;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -151,14 +164,15 @@ class TimerScreen extends ConsumerWidget {
                   : null,
           backgroundColor: Colors.white.withValues(alpha: 0.2),
           iconColor: Colors.white,
-          size: 56,
+          size: resetSize,
           label: 'Reset',
         ),
-        const SizedBox(width: 32),
+        SizedBox(width: 24 * s + 4),
         // Play/Pause button
         PlayPauseButton(
           isPlaying: isRunning,
           showLabel: true,
+          size: playSize,
           onPressed: () {
             if (isIdle || isCompleted) {
               timerService.start();
@@ -169,9 +183,9 @@ class TimerScreen extends ConsumerWidget {
             }
           },
         ),
-        const SizedBox(width: 32),
-        // Placeholder for symmetry (matching reset button width + label)
-        const SizedBox(width: 56),
+        SizedBox(width: 24 * s + 4),
+        // Placeholder for symmetry
+        SizedBox(width: resetSize),
       ],
     );
   }

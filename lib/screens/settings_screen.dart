@@ -124,9 +124,9 @@ class SettingsScreen extends ConsumerWidget {
                   data: _sliderTheme(context),
                   child: Slider(
                     value: settings.roundDurationSeconds.toDouble(),
-                    min: 60,
+                    min: 30,
                     max: 300,
-                    divisions: 48,
+                    divisions: 54,
                     onChanged: (value) {
                       _guardTimerChange(context, ref, () {
                         settingsService.updateRoundDuration(value.toInt());
@@ -134,7 +134,7 @@ class SettingsScreen extends ConsumerWidget {
                     },
                   ),
                 ),
-                _SliderLabels(left: '1 min', right: '5 min'),
+                _SliderLabels(left: '30s', right: '5 min'),
               ],
             ),
             const SizedBox(height: 14),
@@ -394,6 +394,7 @@ class SettingsScreen extends ConsumerWidget {
   String _formatDuration(int seconds) {
     final minutes = seconds ~/ 60;
     final secs = seconds % 60;
+    if (minutes == 0) return '${secs}s';
     if (secs == 0) return '${minutes}m';
     return '${minutes}m ${secs}s';
   }

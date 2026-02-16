@@ -4,11 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:savage_timer/models/timer_settings.dart';
-import 'package:savage_timer/models/workout_session.dart';
 import 'package:savage_timer/screens/settings_screen.dart';
 import 'package:savage_timer/services/audio_service.dart';
 import 'package:savage_timer/services/settings_service.dart';
-import 'package:savage_timer/services/timer_service.dart';
 
 /// A minimal fake AudioService so we don't need real audio players in tests.
 class FakeAudioService extends AudioService {
@@ -221,8 +219,8 @@ void main() {
       await tester.pumpWidget(buildSettingsScreen(prefs));
       await tester.pumpAndSettle();
 
-      // Default rest is 30s
-      expect(find.text('30s'), findsOneWidget);
+      // Default rest is 30s — may appear more than once (value + slider label)
+      expect(find.text('30s'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('displays default total rounds value', (tester) async {

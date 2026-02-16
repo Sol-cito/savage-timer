@@ -110,31 +110,15 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
-# Flutter Native Splash configuration
-flutter_native_splash:
-  color: "#1a1a2e"
-  image: assets/images/savage_timer_logo.png
-
-  # Android 12+ specific settings
-  android_12:
-    color: "#1a1a2e"
-    image: assets/images/savage_timer_logo.png
-
-  # iOS settings
-  ios: true
-
-  # Android settings
-  android: true
-
-  # Keep the splash screen until manually removed (for loading)
-  fullscreen: true
+# Flutter Native Splash — configured in flutter_native_splash.yaml
 
 # Flutter Launcher Icons configuration
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/savage_timer_logo.png"
+  image_path_android: "assets/images/savage_timer_logo_android.png"
+  image_path_ios: "assets/images/savage_timer_logo_ios.png"
   min_sdk_android: 21
   adaptive_icon_background: "#1a1a2e"
-  adaptive_icon_foreground: "assets/images/savage_timer_logo.png"
+  adaptive_icon_foreground: "assets/images/savage_timer_logo_android.png"
   remove_alpha_ios: true
