@@ -52,5 +52,8 @@ android/key.properties
 android/*.jks
 android/*.keystore
 
+# Kotlin build cache
+android/.kotlin/
+
 # Build script output
 build_output/
