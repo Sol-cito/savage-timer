@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import 'models/workout_session.dart';
 import 'screens/settings_screen.dart';
 import 'screens/timer_screen.dart';
 import 'services/audio_service.dart';
+import 'services/notification_service.dart';
 import 'services/settings_service.dart';
+import 'services/timer_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +44,8 @@ class _SavageTimerAppState extends ConsumerState<SavageTimerApp> {
     final audioService = ref.read(audioServiceProvider);
     await audioService.initialize();
 
+    await ref.read(notificationServiceProvider).initialize();
+
     final settings = ref.read(settingsServiceProvider);
     WakelockPlus.toggle(enable: settings.enableKeepScreenOn);
   }
@@ -50,6 +55,17 @@ class _SavageTimerAppState extends ConsumerState<SavageTimerApp> {
     ref.listen(settingsServiceProvider, (previous, next) {
       if (previous?.enableKeepScreenOn != next.enableKeepScreenOn) {
         WakelockPlus.toggle(enable: next.enableKeepScreenOn);
+      }
+    });
+
+    ref.listen<WorkoutSession>(timerServiceProvider, (prev, next) {
+      final notificationService = ref.read(notificationServiceProvider);
+      if (next.state == SessionState.idle) {
+        notificationService.dismiss();
+      } else if (prev?.state != next.state ||
+          prev?.phase != next.phase ||
+          prev?.currentRound != next.currentRound) {
+        notificationService.update(next);
       }
     });
 
