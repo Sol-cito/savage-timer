@@ -4,9 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:savage_timer/models/timer_settings.dart';
+import 'package:savage_timer/models/workout_session.dart';
 import 'package:savage_timer/screens/settings_screen.dart';
 import 'package:savage_timer/services/audio_service.dart';
 import 'package:savage_timer/services/settings_service.dart';
+import 'package:savage_timer/services/timer_service.dart';
+import 'package:savage_timer/services/vibration_service.dart';
 
 /// A minimal fake AudioService so we don't need real audio players in tests.
 class FakeAudioService extends AudioService {
@@ -14,6 +17,38 @@ class FakeAudioService extends AudioService {
   Future<void> initialize() async {}
   @override
   Future<void> playExampleVoice(SavageLevel level) async {}
+}
+
+/// A minimal fake VibrationService so we don't trigger platform vibration.
+class _FakeVibrationService extends VibrationService {
+  @override
+  Future<void> roundStart() async {}
+  @override
+  Future<void> roundEnd() async {}
+  @override
+  Future<void> lastSecondsAlert() async {}
+  @override
+  Future<void> restEnd() async {}
+  @override
+  Future<void> sessionComplete() async {}
+}
+
+/// A [TimerService] that starts in the running state, used to test the
+/// settings guard dialog.
+class _RunningTimerService extends TimerService {
+  _RunningTimerService(TimerSettings settings)
+      : super(
+          audioService: FakeAudioService(),
+          vibrationService: _FakeVibrationService(),
+          settings: settings,
+        ) {
+    state = state.copyWith(state: SessionState.running);
+  }
+
+  @override
+  void reset() {
+    state = state.copyWith(state: SessionState.idle);
+  }
 }
 
 /// Builds a testable [SettingsScreen] wrapped with the required providers.
@@ -24,6 +59,25 @@ Widget buildSettingsScreen(SharedPreferences prefs) {
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       audioServiceProvider.overrideWithValue(fakeAudio),
+    ],
+    child: const MaterialApp(
+      home: SettingsScreen(),
+    ),
+  );
+}
+
+/// Builds a [SettingsScreen] where the timer is already running, so the
+/// guard dialog is triggered when settings are changed.
+Widget buildSettingsScreenWithRunningTimer(SharedPreferences prefs) {
+  final fakeAudio = FakeAudioService();
+  return ProviderScope(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      audioServiceProvider.overrideWithValue(fakeAudio),
+      timerServiceProvider.overrideWith((ref) {
+        final settings = ref.read(settingsServiceProvider);
+        return _RunningTimerService(settings);
+      }),
     ],
     child: const MaterialApp(
       home: SettingsScreen(),
@@ -382,6 +436,80 @@ void main() {
 
       // Default is 3 rounds
       expect(find.text('3'), findsOneWidget);
+    });
+  });
+
+  group('SettingsScreen vibration toggle - timer guard dialog', () {
+    Future<void> scrollToVibrationAndTap(WidgetTester tester) async {
+      await tester.dragUntilVisible(
+        find.text('Vibration'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find
+          .ancestor(of: find.text('Vibration'), matching: find.byType(Row))
+          .first;
+      final switchFinder =
+          find.descendant(of: row, matching: find.byType(Switch));
+      await tester.tap(switchFinder, warnIfMissed: false);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows confirmation dialog when timer is running',
+        (tester) async {
+      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+      await tester.pumpAndSettle();
+
+      await scrollToVibrationAndTap(tester);
+
+      expect(find.text('TIMER IS RUNNING'), findsOneWidget);
+      expect(
+        find.text(
+          'Changing this setting will stop the current timer. Continue?',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Stop & Change'), findsOneWidget);
+    });
+
+    testWidgets('does not change vibration when dialog is cancelled',
+        (tester) async {
+      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+      await tester.pumpAndSettle();
+
+      await scrollToVibrationAndTap(tester);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SettingsScreen)),
+      );
+      // Vibration should still be enabled (its default value)
+      expect(container.read(settingsServiceProvider).enableVibration, isTrue);
+    });
+
+    testWidgets('disables vibration and stops timer when Stop & Change tapped',
+        (tester) async {
+      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+      await tester.pumpAndSettle();
+
+      await scrollToVibrationAndTap(tester);
+
+      await tester.tap(find.text('Stop & Change'));
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SettingsScreen)),
+      );
+      expect(container.read(settingsServiceProvider).enableVibration, isFalse);
+      expect(
+        container.read(timerServiceProvider).state,
+        SessionState.idle,
+      );
     });
   });
 }

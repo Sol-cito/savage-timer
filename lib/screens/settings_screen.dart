@@ -291,7 +291,9 @@ class SettingsScreen extends ConsumerWidget {
                   label: 'Vibration',
                   value: settings.enableVibration,
                   onChanged: (value) {
-                    settingsService.updateVibration(value);
+                    _guardTimerChange(context, ref, () {
+                      settingsService.updateVibration(value);
+                    });
                   },
                 ),
               ],
