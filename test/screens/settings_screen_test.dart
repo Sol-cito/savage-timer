@@ -162,6 +162,159 @@ void main() {
     });
   });
 
+  group('SettingsScreen vibration toggle', () {
+    testWidgets('displays Vibration label in AUDIO section', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Vibration'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      expect(find.text('Vibration'), findsOneWidget);
+    });
+
+    testWidgets('Vibration toggle is on by default', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Vibration'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+
+      final row = find.ancestor(
+        of: find.text('Vibration'),
+        matching: find.byType(Row),
+      ).first;
+      final switchWidget = tester.widget<Switch>(
+        find.descendant(of: row, matching: find.byType(Switch)),
+      );
+      expect(switchWidget.value, isTrue);
+    });
+
+    testWidgets('tapping Vibration toggle turns it off', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Vibration'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.ancestor(
+        of: find.text('Vibration'),
+        matching: find.byType(Row),
+      ).first;
+      final switchFinder = find.descendant(
+        of: row,
+        matching: find.byType(Switch),
+      );
+
+      await tester.tap(switchFinder, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SettingsScreen)),
+      );
+      expect(container.read(settingsServiceProvider).enableVibration, isFalse);
+    });
+  });
+
+  group('SettingsScreen keep screen on toggle', () {
+    testWidgets('displays DISPLAY section header', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('DISPLAY'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      expect(find.text('DISPLAY'), findsOneWidget);
+    });
+
+    testWidgets('displays phone icon for DISPLAY header', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('DISPLAY'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      expect(find.byIcon(Icons.phone_android_outlined), findsOneWidget);
+    });
+
+    testWidgets('displays Keep Screen On label', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Keep Screen On'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      expect(find.text('Keep Screen On'), findsOneWidget);
+    });
+
+    testWidgets('Keep Screen On toggle is on by default', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Keep Screen On'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+
+      final row = find.ancestor(
+        of: find.text('Keep Screen On'),
+        matching: find.byType(Row),
+      ).first;
+      final switchWidget = tester.widget<Switch>(
+        find.descendant(of: row, matching: find.byType(Switch)),
+      );
+      expect(switchWidget.value, isTrue);
+    });
+
+    testWidgets('tapping Keep Screen On toggle turns it off', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Keep Screen On'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.ancestor(
+        of: find.text('Keep Screen On'),
+        matching: find.byType(Row),
+      ).first;
+      final switchFinder = find.descendant(
+        of: row,
+        matching: find.byType(Switch),
+      );
+
+      await tester.tap(switchFinder, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SettingsScreen)),
+      );
+      expect(
+        container.read(settingsServiceProvider).enableKeepScreenOn,
+        isFalse,
+      );
+    });
+  });
+
   group('SettingsScreen existing sections', () {
     testWidgets('displays SETTINGS header', (tester) async {
       await tester.pumpWidget(buildSettingsScreen(prefs));

@@ -15,6 +15,8 @@ class TimerSettings extends Equatable {
   final SavageLevel savageLevel;
   final double volume; // 0.0 = mute, 1.0 = max
   final bool enableMotivationalSound;
+  final bool enableVibration;
+  final bool enableKeepScreenOn;
 
   const TimerSettings({
     this.roundDurationSeconds = 180, // 3 minutes
@@ -25,6 +27,8 @@ class TimerSettings extends Equatable {
     this.savageLevel = SavageLevel.level2,
     this.volume = 0.8,
     this.enableMotivationalSound = true,
+    this.enableVibration = true,
+    this.enableKeepScreenOn = true,
   });
 
   bool get isMuted => volume == 0.0;
@@ -38,6 +42,8 @@ class TimerSettings extends Equatable {
     SavageLevel? savageLevel,
     double? volume,
     bool? enableMotivationalSound,
+    bool? enableVibration,
+    bool? enableKeepScreenOn,
   }) {
     return TimerSettings(
       roundDurationSeconds: roundDurationSeconds ?? this.roundDurationSeconds,
@@ -50,6 +56,8 @@ class TimerSettings extends Equatable {
       volume: volume ?? this.volume,
       enableMotivationalSound:
           enableMotivationalSound ?? this.enableMotivationalSound,
+      enableVibration: enableVibration ?? this.enableVibration,
+      enableKeepScreenOn: enableKeepScreenOn ?? this.enableKeepScreenOn,
     );
   }
 
@@ -63,6 +71,8 @@ class TimerSettings extends Equatable {
       'savageLevel': savageLevel.index,
       'volume': volume,
       'enableMotivationalSound': enableMotivationalSound,
+      'enableVibration': enableVibration,
+      'enableKeepScreenOn': enableKeepScreenOn,
     };
   }
 
@@ -77,6 +87,8 @@ class TimerSettings extends Equatable {
       volume: (json['volume'] as num?)?.toDouble() ?? 0.8,
       enableMotivationalSound:
           json['enableMotivationalSound'] as bool? ?? true,
+      enableVibration: json['enableVibration'] as bool? ?? true,
+      enableKeepScreenOn: json['enableKeepScreenOn'] as bool? ?? true,
     );
   }
 
@@ -90,5 +102,7 @@ class TimerSettings extends Equatable {
     savageLevel,
     volume,
     enableMotivationalSound,
+    enableVibration,
+    enableKeepScreenOn,
   ];
 }

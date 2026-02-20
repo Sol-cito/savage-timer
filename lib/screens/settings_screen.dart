@@ -285,6 +285,34 @@ class SettingsScreen extends ConsumerWidget {
                     });
                   },
                 ),
+
+                // Vibration toggle
+                _ToggleRow(
+                  label: 'Vibration',
+                  value: settings.enableVibration,
+                  onChanged: (value) {
+                    settingsService.updateVibration(value);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Display
+            _SettingsCard(
+              children: [
+                _SectionHeader(
+                  title: 'DISPLAY',
+                  icon: Icons.phone_android_outlined,
+                ),
+                const SizedBox(height: 6),
+                _ToggleRow(
+                  label: 'Keep Screen On',
+                  value: settings.enableKeepScreenOn,
+                  onChanged: (value) {
+                    settingsService.updateKeepScreenOn(value);
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 14),

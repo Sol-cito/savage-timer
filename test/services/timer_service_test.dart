@@ -122,18 +122,22 @@ class FakeAudioService implements AudioService {
   }
 }
 
-/// A fake VibrationService that does nothing.
+/// A fake VibrationService that records method calls for verification.
 class FakeVibrationService implements VibrationService {
+  final List<String> calls = [];
+
   @override
-  Future<void> roundStart() async {}
+  Future<void> roundStart() async { calls.add('roundStart'); }
   @override
-  Future<void> roundEnd() async {}
+  Future<void> roundEnd() async { calls.add('roundEnd'); }
   @override
-  Future<void> lastSecondsAlert() async {}
+  Future<void> lastSecondsAlert() async { calls.add('lastSecondsAlert'); }
   @override
-  Future<void> restEnd() async {}
+  Future<void> restEnd() async { calls.add('restEnd'); }
   @override
-  Future<void> sessionComplete() async {}
+  Future<void> sessionComplete() async { calls.add('sessionComplete'); }
+
+  void clearCalls() => calls.clear();
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -1392,6 +1396,169 @@ void main() {
         expect(fakeAudio.calls, isNot(contains('speakQuote')));
         expect(fakeAudio.calls, isNot(contains('speakQuoteForced')));
 
+        service.reset();
+      });
+    });
+  });
+
+  group('TimerService vibration toggle', () {
+    TimerService makeService({
+      required bool enableVibration,
+      int roundDuration = 20,
+      int restDuration = 5,
+      int totalRounds = 2,
+      bool enableLastSecondsAlert = true,
+      int lastSecondsThreshold = 10,
+    }) {
+      return TimerService(
+        audioService: fakeAudio,
+        vibrationService: fakeVibration,
+        settings: TimerSettings(
+          roundDurationSeconds: roundDuration,
+          restDurationSeconds: restDuration,
+          totalRounds: totalRounds,
+          enableVibration: enableVibration,
+          enableLastSecondsAlert: enableLastSecondsAlert,
+          lastSecondsThreshold: lastSecondsThreshold,
+        ),
+      );
+    }
+
+    test('calls roundStart vibration when enableVibration is true', () {
+      fakeAsync((async) {
+        fakeVibration.clearCalls();
+        final service = makeService(enableVibration: true);
+        service.start();
+        expect(fakeVibration.calls, contains('roundStart'));
+        service.reset();
+      });
+    });
+
+    test('skips roundStart vibration when enableVibration is false', () {
+      fakeAsync((async) {
+        fakeVibration.clearCalls();
+        final service = makeService(enableVibration: false);
+        service.start();
+        expect(fakeVibration.calls, isNot(contains('roundStart')));
+        service.reset();
+      });
+    });
+
+    test('calls roundEnd vibration when round ends and enabled', () {
+      fakeAsync((async) {
+        final service = makeService(enableVibration: true, totalRounds: 2);
+        service.start();
+        fakeVibration.clearCalls();
+        async.elapse(const Duration(seconds: 20));
+        expect(fakeVibration.calls, contains('roundEnd'));
+        service.reset();
+      });
+    });
+
+    test('skips roundEnd vibration when disabled', () {
+      fakeAsync((async) {
+        final service = makeService(enableVibration: false, totalRounds: 2);
+        service.start();
+        fakeVibration.clearCalls();
+        async.elapse(const Duration(seconds: 20));
+        expect(fakeVibration.calls, isNot(contains('roundEnd')));
+        service.reset();
+      });
+    });
+
+    test('calls restEnd vibration when rest ends and enabled', () {
+      fakeAsync((async) {
+        final service = makeService(enableVibration: true, totalRounds: 2);
+        service.start();
+        async.elapse(const Duration(seconds: 20)); // round ends → rest
+        fakeVibration.clearCalls();
+        async.elapse(const Duration(seconds: 5)); // rest ends
+        expect(fakeVibration.calls, contains('restEnd'));
+        service.reset();
+      });
+    });
+
+    test('skips restEnd vibration when disabled', () {
+      fakeAsync((async) {
+        final service = makeService(enableVibration: false, totalRounds: 2);
+        service.start();
+        async.elapse(const Duration(seconds: 20)); // round ends → rest
+        fakeVibration.clearCalls();
+        async.elapse(const Duration(seconds: 5)); // rest ends
+        expect(fakeVibration.calls, isNot(contains('restEnd')));
+        service.reset();
+      });
+    });
+
+    test('calls sessionComplete vibration on last round end when enabled', () {
+      fakeAsync((async) {
+        final service = makeService(enableVibration: true, totalRounds: 1);
+        service.start();
+        fakeVibration.clearCalls();
+        async.elapse(const Duration(seconds: 20));
+        expect(fakeVibration.calls, contains('sessionComplete'));
+        service.reset();
+      });
+    });
+
+    test('skips sessionComplete vibration when disabled', () {
+      fakeAsync((async) {
+        final service = makeService(enableVibration: false, totalRounds: 1);
+        service.start();
+        fakeVibration.clearCalls();
+        async.elapse(const Duration(seconds: 20));
+        expect(fakeVibration.calls, isNot(contains('sessionComplete')));
+        service.reset();
+      });
+    });
+
+    test('calls lastSecondsAlert vibration when both flags are enabled', () {
+      fakeAsync((async) {
+        final service = makeService(
+          enableVibration: true,
+          totalRounds: 1,
+          enableLastSecondsAlert: true,
+          lastSecondsThreshold: 10,
+        );
+        service.start();
+        fakeVibration.clearCalls();
+        // At 10s elapsed, remainingSeconds drops to 10 → triggers alert
+        async.elapse(const Duration(seconds: 10));
+        expect(fakeVibration.calls, contains('lastSecondsAlert'));
+        service.reset();
+      });
+    });
+
+    test('skips lastSecondsAlert vibration when enableVibration is false', () {
+      fakeAsync((async) {
+        final service = makeService(
+          enableVibration: false,
+          totalRounds: 1,
+          enableLastSecondsAlert: true,
+          lastSecondsThreshold: 10,
+        );
+        service.start();
+        fakeVibration.clearCalls();
+        async.elapse(const Duration(seconds: 20));
+        expect(fakeVibration.calls, isNot(contains('lastSecondsAlert')));
+        service.reset();
+      });
+    });
+
+    test('no vibration calls at all when enableVibration is false', () {
+      fakeAsync((async) {
+        final service = makeService(
+          enableVibration: false,
+          totalRounds: 2,
+          enableLastSecondsAlert: true,
+          lastSecondsThreshold: 10,
+        );
+        fakeVibration.clearCalls();
+        service.start();
+        async.elapse(const Duration(seconds: 20)); // round 1 ends
+        async.elapse(const Duration(seconds: 5));  // rest ends
+        async.elapse(const Duration(seconds: 20)); // round 2 ends (session complete)
+        expect(fakeVibration.calls, isEmpty);
         service.reset();
       });
     });

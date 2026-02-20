@@ -71,6 +71,16 @@ class SettingsService extends StateNotifier<TimerSettings> {
     _saveSettings();
   }
 
+  void updateVibration(bool enabled) {
+    state = state.copyWith(enableVibration: enabled);
+    _saveSettings();
+  }
+
+  void updateKeepScreenOn(bool enabled) {
+    state = state.copyWith(enableKeepScreenOn: enabled);
+    _saveSettings();
+  }
+
   void resetToDefaults() {
     state = const TimerSettings();
     _saveSettings();

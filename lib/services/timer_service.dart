@@ -73,7 +73,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
       _settings.savageLevel,
       _settings.enableMotivationalSound,
     );
-    _vibrationService.roundStart();
+    if (_settings.enableVibration) _vibrationService.roundStart();
 
     // Schedule start voice after count_start finishes (avoid overlap)
     if (_settings.enableMotivationalSound) {
@@ -147,7 +147,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
         newRemaining == _settings.lastSecondsThreshold) {
       _lastSecondsAlertTriggered = true;
       _audioService.play30SecBell();
-      _vibrationService.lastSecondsAlert();
+      if (_settings.enableVibration) _vibrationService.lastSecondsAlert();
     }
 
     // Countdown sounds at 3, 2, 1
@@ -171,7 +171,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
       // Round ended — cancel any remaining voice timers
       _cancelExerciseVoiceTimers();
       _startVoiceTimer?.cancel();
-      _vibrationService.roundEnd();
+      if (_settings.enableVibration) _vibrationService.roundEnd();
 
       if (state.isLastRound) {
         // Workout complete — play count_finish
@@ -180,7 +180,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
           _settings.enableMotivationalSound,
         );
         _timer?.cancel();
-        _vibrationService.sessionComplete();
+        if (_settings.enableVibration) _vibrationService.sessionComplete();
         state = state.copyWith(
           state: SessionState.completed,
           remainingSeconds: 0,
@@ -217,7 +217,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
         _settings.savageLevel,
         _settings.enableMotivationalSound,
       );
-      _vibrationService.restEnd();
+      if (_settings.enableVibration) _vibrationService.restEnd();
       _lastSecondsAlertTriggered = false;
       state = state.copyWith(
         phase: SessionPhase.round,

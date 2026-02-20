@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'screens/settings_screen.dart';
 import 'screens/timer_screen.dart';
@@ -39,10 +40,19 @@ class _SavageTimerAppState extends ConsumerState<SavageTimerApp> {
   Future<void> _initializeServices() async {
     final audioService = ref.read(audioServiceProvider);
     await audioService.initialize();
+
+    final settings = ref.read(settingsServiceProvider);
+    WakelockPlus.toggle(enable: settings.enableKeepScreenOn);
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(settingsServiceProvider, (previous, next) {
+      if (previous?.enableKeepScreenOn != next.enableKeepScreenOn) {
+        WakelockPlus.toggle(enable: next.enableKeepScreenOn);
+      }
+    });
+
     return MaterialApp(
       title: 'Savage Timer',
       debugShowCheckedModeBanner: false,
