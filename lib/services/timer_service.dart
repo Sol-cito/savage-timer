@@ -21,6 +21,10 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
   bool _lastSecondsAlertTriggered = false;
 
+  /// Wall-clock tracking for iOS background reconciliation.
+  DateTime? _phaseStartedAt;
+  int _phaseStartedWithSeconds = 0;
+
   /// Bell duration in seconds — voices are delayed by this to avoid overlap.
   static const _bellDurationSeconds = 3;
 
@@ -66,6 +70,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     }
 
     state = state.copyWith(state: SessionState.running);
+    _audioService.startKeepAlive();
     _startTimer();
 
     // Play count_start and vibration
@@ -100,12 +105,14 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _restVoiceTimer?.cancel();
     _cancelExerciseVoiceTimers();
     _audioService.stop();
+    _audioService.stopKeepAlive();
     state = state.copyWith(state: SessionState.paused);
   }
 
   void resume() {
     if (state.state != SessionState.paused) return;
     state = state.copyWith(state: SessionState.running);
+    _audioService.startKeepAlive();
     _startTimer();
   }
 
@@ -115,11 +122,44 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _restVoiceTimer?.cancel();
     _cancelExerciseVoiceTimers();
     _audioService.stop();
+    _audioService.stopKeepAlive();
     _resetState();
+  }
+
+  /// Called when the app returns to foreground. Uses wall-clock time to
+  /// catch up with any ticks that were missed while iOS suspended the isolate.
+  void reconcile() {
+    if (state.state != SessionState.running) return;
+    if (_phaseStartedAt == null) return;
+
+    final now = DateTime.now();
+    final elapsed = now.difference(_phaseStartedAt!).inSeconds;
+    var remaining = _phaseStartedWithSeconds - elapsed;
+
+    // Process phase transitions while time has overflowed.
+    while (remaining <= 0 && state.state == SessionState.running) {
+      final overflow = -remaining;
+      _handlePhaseEnd();
+      if (state.state != SessionState.running) break;
+      remaining = state.remainingSeconds - overflow;
+    }
+
+    if (state.state == SessionState.running && remaining > 0) {
+      state = state.copyWith(remainingSeconds: remaining);
+    }
+
+    _recordPhaseStart();
+  }
+
+  void _recordPhaseStart() {
+    _phaseStartedAt = DateTime.now();
+    _phaseStartedWithSeconds = state.remainingSeconds;
   }
 
   void _resetState() {
     _lastSecondsAlertTriggered = false;
+    _phaseStartedAt = null;
+    _phaseStartedWithSeconds = 0;
 
     state = WorkoutSession(
       totalRounds: _settings.totalRounds,
@@ -132,6 +172,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
   void _startTimer() {
     _timer?.cancel();
+    _recordPhaseStart();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 
@@ -180,6 +221,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
           _settings.enableMotivationalSound,
         );
         _timer?.cancel();
+        _audioService.stopKeepAlive();
         if (_settings.enableVibration) _vibrationService.sessionComplete();
         state = state.copyWith(
           state: SessionState.completed,
@@ -196,6 +238,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
           phase: SessionPhase.rest,
           remainingSeconds: _settings.restDurationSeconds,
         );
+        _recordPhaseStart();
 
         // Play a random rest voice after count_rest finishes
         if (_settings.enableMotivationalSound) {
@@ -224,6 +267,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
         currentRound: state.currentRound + 1,
         remainingSeconds: _settings.roundDurationSeconds,
       );
+      _recordPhaseStart();
 
       // Schedule start voice after count_start finishes
       if (_settings.enableMotivationalSound) {

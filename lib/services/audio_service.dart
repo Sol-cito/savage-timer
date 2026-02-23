@@ -14,6 +14,7 @@ class AudioService {
   final AudioPlayer _warningPlayer = AudioPlayer();
   final AudioPlayer _voicePlayer = AudioPlayer();
   final AudioPlayer _countPlayer = AudioPlayer();
+  final AudioPlayer _keepAlivePlayer = AudioPlayer();
   final FlutterTts _tts = FlutterTts();
 
   DateTime? _lastQuoteTime;
@@ -251,6 +252,19 @@ class AudioService {
     _lastQuoteTime = null;
   }
 
+  /// Starts a silent audio loop to keep the Dart isolate alive on iOS.
+  /// iOS suspends the isolate when no audio is playing; this prevents that.
+  Future<void> startKeepAlive() async {
+    await _keepAlivePlayer.setReleaseMode(ReleaseMode.loop);
+    await _keepAlivePlayer.setSource(AssetSource('sounds/silence.wav'));
+    await _keepAlivePlayer.resume();
+  }
+
+  /// Stops the silent keepalive audio loop.
+  Future<void> stopKeepAlive() async {
+    await _keepAlivePlayer.stop();
+  }
+
   Future<void> stop() async {
     await _tts.stop();
     await _bellPlayer.stop();
@@ -261,10 +275,12 @@ class AudioService {
 
   Future<void> dispose() async {
     await stop();
+    await stopKeepAlive();
     await _bellPlayer.dispose();
     await _warningPlayer.dispose();
     await _voicePlayer.dispose();
     await _countPlayer.dispose();
+    await _keepAlivePlayer.dispose();
   }
 }
 

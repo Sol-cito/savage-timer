@@ -99,6 +99,16 @@ class FakeAudioService implements AudioService {
   }
 
   @override
+  Future<void> startKeepAlive() async {
+    calls.add('startKeepAlive');
+  }
+
+  @override
+  Future<void> stopKeepAlive() async {
+    calls.add('stopKeepAlive');
+  }
+
+  @override
   Future<void> stop() async {
     calls.add('stop');
   }
@@ -1559,6 +1569,105 @@ void main() {
         async.elapse(const Duration(seconds: 5));  // rest ends
         async.elapse(const Duration(seconds: 20)); // round 2 ends (session complete)
         expect(fakeVibration.calls, isEmpty);
+        service.reset();
+      });
+    });
+  });
+
+  group('TimerService keepalive lifecycle', () {
+    test('start calls startKeepAlive', () {
+      fakeAsync((async) {
+        final service = createService(roundDuration: 60);
+
+        service.start();
+        expect(fakeAudio.calls, contains('startKeepAlive'));
+
+        service.reset();
+      });
+    });
+
+    test('pause calls stopKeepAlive', () {
+      fakeAsync((async) {
+        final service = createService(roundDuration: 60);
+
+        service.start();
+        fakeAudio.clearCounters();
+
+        async.elapse(const Duration(seconds: 5));
+        service.pause();
+        expect(fakeAudio.calls, contains('stopKeepAlive'));
+
+        service.reset();
+      });
+    });
+
+    test('resume calls startKeepAlive', () {
+      fakeAsync((async) {
+        final service = createService(roundDuration: 60);
+
+        service.start();
+        async.elapse(const Duration(seconds: 5));
+        service.pause();
+        fakeAudio.clearCounters();
+
+        service.resume();
+        expect(fakeAudio.calls, contains('startKeepAlive'));
+
+        service.reset();
+      });
+    });
+
+    test('reset calls stopKeepAlive', () {
+      fakeAsync((async) {
+        final service = createService(roundDuration: 60);
+
+        service.start();
+        async.elapse(const Duration(seconds: 5));
+        fakeAudio.clearCounters();
+
+        service.reset();
+        expect(fakeAudio.calls, contains('stopKeepAlive'));
+      });
+    });
+
+    test('session completion calls stopKeepAlive', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 5,
+          totalRounds: 1,
+        );
+
+        service.start();
+        fakeAudio.clearCounters();
+
+        async.elapse(const Duration(seconds: 5));
+        expect(service.state.state, SessionState.completed);
+        expect(fakeAudio.calls, contains('stopKeepAlive'));
+
+        service.reset();
+      });
+    });
+
+    test('keepalive not restarted during running phase transitions', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 5,
+          restDuration: 5,
+          totalRounds: 2,
+        );
+
+        service.start();
+        fakeAudio.clearCounters();
+
+        // Round 1 ends → rest starts (no new startKeepAlive)
+        async.elapse(const Duration(seconds: 5));
+        expect(fakeAudio.calls, isNot(contains('startKeepAlive')));
+
+        // Rest ends → round 2 starts (no new startKeepAlive)
+        fakeAudio.clearCounters();
+        async.elapse(const Duration(seconds: 5));
+        expect(fakeAudio.calls, isNot(contains('startKeepAlive')));
+
         service.reset();
       });
     });

@@ -33,11 +33,26 @@ class SavageTimerApp extends ConsumerStatefulWidget {
   ConsumerState<SavageTimerApp> createState() => _SavageTimerAppState();
 }
 
-class _SavageTimerAppState extends ConsumerState<SavageTimerApp> {
+class _SavageTimerAppState extends ConsumerState<SavageTimerApp>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeServices();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(timerServiceProvider.notifier).reconcile();
+    }
   }
 
   Future<void> _initializeServices() async {
