@@ -439,6 +439,121 @@ void main() {
     });
   });
 
+  group('SettingsScreen keep screen on toggle - timer guard dialog', () {
+    Future<void> scrollToKeepScreenOnAndTap(WidgetTester tester) async {
+      await tester.dragUntilVisible(
+        find.text('Keep Screen On'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find
+          .ancestor(
+              of: find.text('Keep Screen On'), matching: find.byType(Row))
+          .first;
+      final switchFinder =
+          find.descendant(of: row, matching: find.byType(Switch));
+      await tester.tap(switchFinder, warnIfMissed: false);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows confirmation dialog when timer is running',
+        (tester) async {
+      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+      await tester.pumpAndSettle();
+
+      await scrollToKeepScreenOnAndTap(tester);
+
+      expect(find.text('TIMER IS RUNNING'), findsOneWidget);
+      expect(
+        find.text(
+          'Changing this setting will stop the current timer. Continue?',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Stop & Change'), findsOneWidget);
+    });
+
+    testWidgets('does not change setting when dialog is cancelled',
+        (tester) async {
+      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+      await tester.pumpAndSettle();
+
+      await scrollToKeepScreenOnAndTap(tester);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SettingsScreen)),
+      );
+      // Keep Screen On should still be enabled (its default value)
+      expect(
+        container.read(settingsServiceProvider).enableKeepScreenOn,
+        isTrue,
+      );
+    });
+
+    testWidgets(
+        'disables Keep Screen On and stops timer when Stop & Change tapped',
+        (tester) async {
+      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+      await tester.pumpAndSettle();
+
+      await scrollToKeepScreenOnAndTap(tester);
+
+      await tester.tap(find.text('Stop & Change'));
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SettingsScreen)),
+      );
+      expect(
+        container.read(settingsServiceProvider).enableKeepScreenOn,
+        isFalse,
+      );
+      expect(
+        container.read(timerServiceProvider).state,
+        SessionState.idle,
+      );
+    });
+
+    testWidgets('no dialog when timer is idle', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Keep Screen On'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find
+          .ancestor(
+              of: find.text('Keep Screen On'), matching: find.byType(Row))
+          .first;
+      final switchFinder =
+          find.descendant(of: row, matching: find.byType(Switch));
+      await tester.tap(switchFinder, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      // No dialog should appear
+      expect(find.text('TIMER IS RUNNING'), findsNothing);
+
+      // Setting should have changed directly
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SettingsScreen)),
+      );
+      expect(
+        container.read(settingsServiceProvider).enableKeepScreenOn,
+        isFalse,
+      );
+    });
+  });
+
   group('SettingsScreen vibration toggle - timer guard dialog', () {
     Future<void> scrollToVibrationAndTap(WidgetTester tester) async {
       await tester.dragUntilVisible(

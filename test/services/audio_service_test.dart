@@ -1,8 +1,54 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:savage_timer/models/timer_settings.dart';
 
 void main() {
+  group('AudioService iOS background audio configuration', () {
+    test('Info.plist contains UIBackgroundModes with audio', () {
+      final plistFile = File('ios/Runner/Info.plist');
+      expect(plistFile.existsSync(), isTrue,
+          reason: 'Info.plist should exist');
+
+      final content = plistFile.readAsStringSync();
+      expect(content, contains('UIBackgroundModes'),
+          reason: 'Info.plist must declare UIBackgroundModes');
+      expect(content, contains('<string>audio</string>'),
+          reason: 'UIBackgroundModes must include audio for background playback');
+    });
+
+    test('audio_session package is used for AVAudioSession configuration', () {
+      final sourceFile = File('lib/services/audio_service.dart');
+      expect(sourceFile.existsSync(), isTrue);
+
+      final content = sourceFile.readAsStringSync();
+      expect(content, contains("package:audio_session/audio_session.dart"),
+          reason: 'audio_session package must be imported for background audio');
+      expect(content, contains('AVAudioSessionCategory.playback'),
+          reason: 'Audio session must be configured with playback category');
+      expect(content, contains('setActive(true)'),
+          reason: 'Audio session must be activated');
+    });
+  });
+
+  group('AudioService Android background audio configuration', () {
+    test('AndroidManifest.xml contains FOREGROUND_SERVICE permission', () {
+      final manifestFile =
+          File('android/app/src/main/AndroidManifest.xml');
+      expect(manifestFile.existsSync(), isTrue,
+          reason: 'AndroidManifest.xml should exist');
+
+      final content = manifestFile.readAsStringSync();
+      expect(content, contains('FOREGROUND_SERVICE'),
+          reason:
+              'AndroidManifest must include FOREGROUND_SERVICE for background audio');
+      expect(content, contains('WAKE_LOCK'),
+          reason: 'AndroidManifest must include WAKE_LOCK for background execution');
+    });
+  });
+
+
   group('AudioService level folder mapping', () {
     test('all SavageLevel values are handled', () {
       for (final level in SavageLevel.values) {

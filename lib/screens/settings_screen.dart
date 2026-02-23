@@ -312,7 +312,9 @@ class SettingsScreen extends ConsumerWidget {
                   label: 'Keep Screen On',
                   value: settings.enableKeepScreenOn,
                   onChanged: (value) {
-                    settingsService.updateKeepScreenOn(value);
+                    _guardTimerChange(context, ref, () {
+                      settingsService.updateKeepScreenOn(value);
+                    });
                   },
                 ),
               ],

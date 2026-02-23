@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:audio_session/audio_session.dart' as audio_session;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,6 +25,22 @@ class AudioService {
 
   Future<void> initialize() async {
     if (_isInitialized) return;
+
+    // Configure audio session for background playback (critical for iOS)
+    final session = await audio_session.AudioSession.instance;
+    await session.configure(audio_session.AudioSessionConfiguration(
+      avAudioSessionCategory: audio_session.AVAudioSessionCategory.playback,
+      avAudioSessionCategoryOptions:
+          audio_session.AVAudioSessionCategoryOptions.mixWithOthers,
+      avAudioSessionMode: audio_session.AVAudioSessionMode.defaultMode,
+      androidAudioAttributes: const audio_session.AndroidAudioAttributes(
+        contentType: audio_session.AndroidAudioContentType.music,
+        usage: audio_session.AndroidAudioUsage.media,
+      ),
+      androidAudioFocusGainType:
+          audio_session.AndroidAudioFocusGainType.gain,
+    ));
+    await session.setActive(true);
 
     await _tts.setLanguage('en-US');
     await _tts.setSpeechRate(0.5);
