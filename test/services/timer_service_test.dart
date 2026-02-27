@@ -1672,4 +1672,221 @@ void main() {
       });
     });
   });
+
+  group('TimerService skip', () {
+    test('skip during round transitions to rest', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          restDuration: 10,
+          totalRounds: 2,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 20));
+
+        service.skip();
+        expect(service.state.phase, SessionPhase.rest);
+        expect(service.state.remainingSeconds, 10);
+
+        service.reset();
+      });
+    });
+
+    test('skip during last round completes session', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          totalRounds: 1,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 20));
+
+        service.skip();
+        expect(service.state.state, SessionState.completed);
+        expect(service.state.remainingSeconds, 0);
+
+        service.reset();
+      });
+    });
+
+    test('skip during rest transitions to next round', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 5,
+          restDuration: 30,
+          totalRounds: 3,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 5)); // finish round → rest
+        expect(service.state.phase, SessionPhase.rest);
+
+        service.skip();
+        expect(service.state.phase, SessionPhase.round);
+        expect(service.state.currentRound, 2);
+        expect(service.state.remainingSeconds, 5);
+
+        service.reset();
+      });
+    });
+
+    test('skip does not call audioService.stop() to avoid race condition', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          totalRounds: 2,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 10));
+        fakeAudio.clearCounters();
+
+        service.skip();
+        // stop() must NOT be called — it races with the transition sound
+        expect(fakeAudio.calls, isNot(contains('stop')));
+
+        service.reset();
+      });
+    });
+
+    test('skip plays count_rest when skipping non-last round', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          restDuration: 10,
+          totalRounds: 2,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 10));
+        fakeAudio.clearCounters();
+
+        service.skip();
+        expect(fakeAudio.calls, contains('playCountRest'));
+
+        service.reset();
+      });
+    });
+
+    test('skip plays count_finish when skipping last round', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          totalRounds: 1,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 10));
+        fakeAudio.clearCounters();
+
+        service.skip();
+        expect(fakeAudio.calls, contains('playCountFinish'));
+
+        service.reset();
+      });
+    });
+
+    test('skip plays count_start when skipping rest', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 5,
+          restDuration: 30,
+          totalRounds: 2,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 5)); // finish round → rest
+        fakeAudio.clearCounters();
+
+        service.skip();
+        expect(fakeAudio.calls, contains('playCountStart'));
+
+        service.reset();
+      });
+    });
+
+    test('skip from paused state transitions correctly', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          restDuration: 10,
+          totalRounds: 2,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 20));
+        service.pause();
+        expect(service.state.state, SessionState.paused);
+
+        service.skip();
+        expect(service.state.phase, SessionPhase.rest);
+        expect(service.state.state, SessionState.running);
+        expect(service.state.remainingSeconds, 10);
+
+        service.reset();
+      });
+    });
+
+    test('skip when idle is a no-op', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          totalRounds: 2,
+        );
+
+        final stateBefore = service.state;
+        service.skip();
+        expect(service.state.state, stateBefore.state);
+        expect(service.state.remainingSeconds, stateBefore.remainingSeconds);
+      });
+    });
+
+    test('skip when completed is a no-op', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 5,
+          totalRounds: 1,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 5));
+        expect(service.state.state, SessionState.completed);
+
+        fakeAudio.clearCounters();
+        service.skip();
+        // Should still be completed, no new audio calls
+        expect(service.state.state, SessionState.completed);
+        expect(fakeAudio.calls, isEmpty);
+      });
+    });
+
+    test('skip cancels pending voice timers from current phase', () {
+      fakeAsync((async) {
+        final seeded = SeededRandom([0, 0, 0, 0, 0]);
+        final service = createService(
+          roundDuration: 60,
+          restDuration: 10,
+          totalRounds: 2,
+          random: seeded,
+        );
+
+        service.start();
+        fakeAudio.clearCounters();
+
+        // Skip before any exercise voices fire (at 5s into 60s round)
+        async.elapse(const Duration(seconds: 5));
+        service.skip();
+
+        // Original round's exercise voices should not fire during rest
+        fakeAudio.exerciseVoiceCount = 0;
+        fakeAudio.startVoiceCount = 0;
+        async.elapse(const Duration(seconds: 5)); // still in rest
+        expect(fakeAudio.exerciseVoiceCount, 0);
+
+        service.reset();
+      });
+    });
+  });
 }

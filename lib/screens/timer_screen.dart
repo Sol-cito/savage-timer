@@ -184,8 +184,16 @@ class TimerScreen extends ConsumerWidget {
           },
         ),
         SizedBox(width: 24 * s + 4),
-        // Placeholder for symmetry
-        SizedBox(width: resetSize),
+        // Skip button
+        ControlButton(
+          icon: Icons.skip_next,
+          onPressed:
+              (isRunning || isPaused) ? () => timerService.skip() : null,
+          backgroundColor: Colors.white.withValues(alpha: 0.2),
+          iconColor: Colors.white,
+          size: resetSize,
+          label: 'Skip',
+        ),
       ],
     );
   }

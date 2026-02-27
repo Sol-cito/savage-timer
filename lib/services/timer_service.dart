@@ -116,6 +116,29 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _startTimer();
   }
 
+  void skip() {
+    if (state.state == SessionState.idle ||
+        state.state == SessionState.completed) {
+      return;
+    }
+
+    _timer?.cancel();
+    _startVoiceTimer?.cancel();
+    _restVoiceTimer?.cancel();
+    _cancelExerciseVoiceTimers();
+
+    if (state.state == SessionState.paused) {
+      state = state.copyWith(state: SessionState.running);
+      _audioService.startKeepAlive();
+    }
+
+    _handlePhaseEnd();
+
+    if (state.state == SessionState.running) {
+      _startTimer();
+    }
+  }
+
   void reset() {
     _timer?.cancel();
     _startVoiceTimer?.cancel();
