@@ -118,6 +118,14 @@ class FakeAudioService implements AudioService {
     calls.add('resetQuoteCooldown');
   }
 
+  double lastVolume = 0.8;
+
+  @override
+  Future<void> setVolume(double volume) async {
+    lastVolume = volume;
+    calls.add('setVolume');
+  }
+
   @override
   Future<void> dispose() async {}
 
@@ -1203,6 +1211,62 @@ void main() {
         // State should still be running, not reset
         expect(service.state.state, SessionState.running);
         expect(service.state.remainingSeconds, 50); // 60 - 10
+
+        service.reset();
+      });
+    });
+  });
+
+  group('TimerService volume changes while running', () {
+    test('volume change applies to audio service without stopping timer', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          restDuration: 10,
+          totalRounds: 2,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 10));
+        fakeAudio.calls.clear();
+
+        service.updateSettings(const TimerSettings(
+          roundDurationSeconds: 60,
+          restDurationSeconds: 10,
+          totalRounds: 2,
+          volume: 0.5,
+        ));
+
+        // Timer should still be running
+        expect(service.state.state, SessionState.running);
+        expect(service.state.remainingSeconds, 50); // 60 - 10
+
+        // Volume should have been applied to audio service
+        expect(fakeAudio.calls, contains('setVolume'));
+        expect(fakeAudio.lastVolume, 0.5);
+
+        service.reset();
+      });
+    });
+
+    test('setVolume is not called when volume has not changed', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          restDuration: 10,
+          totalRounds: 2,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 5));
+        fakeAudio.calls.clear();
+
+        // Update settings with same default volume (0.8)
+        service.updateSettings(const TimerSettings(
+          roundDurationSeconds: 120,
+        ));
+
+        expect(fakeAudio.calls, isNot(contains('setVolume')));
 
         service.reset();
       });

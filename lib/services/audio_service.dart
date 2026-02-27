@@ -248,6 +248,16 @@ class AudioService {
     );
   }
 
+  /// Updates the volume for all audio players and TTS.
+  Future<void> setVolume(double volume) async {
+    final clamped = volume.clamp(0.0, 1.0);
+    await _bellPlayer.setVolume(clamped);
+    await _warningPlayer.setVolume(clamped);
+    await _voicePlayer.setVolume(clamped);
+    await _countPlayer.setVolume(clamped);
+    await _tts.setVolume(clamped);
+  }
+
   void resetQuoteCooldown() {
     _lastQuoteTime = null;
   }

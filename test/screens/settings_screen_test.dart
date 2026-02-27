@@ -17,6 +17,8 @@ class FakeAudioService extends AudioService {
   Future<void> initialize() async {}
   @override
   Future<void> playExampleVoice(SavageLevel level) async {}
+  @override
+  Future<void> setVolume(double volume) async {}
 }
 
 /// A minimal fake VibrationService so we don't trigger platform vibration.
@@ -551,6 +553,70 @@ void main() {
         container.read(settingsServiceProvider).enableKeepScreenOn,
         isFalse,
       );
+    });
+  });
+
+  group('SettingsScreen volume slider - no guard (adjustable while running)', () {
+    /// Finds the volume slider (min 0.0, max 1.0, divisions 10) and taps it.
+    Future<Finder> scrollToVolumeSliderAndTap(WidgetTester tester) async {
+      await tester.dragUntilVisible(
+        find.text('AUDIO'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+
+      final sliders = find.byType(Slider);
+      Finder? volumeSlider;
+      for (var i = 0; i < tester.widgetList(sliders).length; i++) {
+        final slider = tester.widget<Slider>(sliders.at(i));
+        if (slider.max == 1.0 && slider.divisions == 10) {
+          volumeSlider = sliders.at(i);
+          break;
+        }
+      }
+      expect(volumeSlider, isNotNull);
+
+      await tester.tap(volumeSlider!, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      return volumeSlider!;
+    }
+
+    testWidgets('no confirmation dialog when timer is running',
+        (tester) async {
+      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+      await tester.pumpAndSettle();
+
+      await scrollToVolumeSliderAndTap(tester);
+
+      // Volume should NOT trigger the guard dialog
+      expect(find.text('TIMER IS RUNNING'), findsNothing);
+    });
+
+    testWidgets('volume changes while timer keeps running', (tester) async {
+      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+      await tester.pumpAndSettle();
+
+      await scrollToVolumeSliderAndTap(tester);
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SettingsScreen)),
+      );
+      // Timer should still be running
+      expect(
+        container.read(timerServiceProvider).state,
+        SessionState.running,
+      );
+    });
+
+    testWidgets('volume changes when timer is idle', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await scrollToVolumeSliderAndTap(tester);
+
+      // No dialog should appear
+      expect(find.text('TIMER IS RUNNING'), findsNothing);
     });
   });
 

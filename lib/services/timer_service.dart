@@ -50,7 +50,14 @@ class TimerService extends StateNotifier<WorkoutSession> {
        );
 
   void updateSettings(TimerSettings settings) {
+    final previous = _settings;
     _settings = settings;
+
+    // Volume can be adjusted live without affecting the timer.
+    if (previous.volume != settings.volume) {
+      _audioService.setVolume(settings.volume);
+    }
+
     if (state.state == SessionState.idle) {
       state = WorkoutSession(
         totalRounds: settings.totalRounds,
@@ -381,9 +388,9 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
 final timerServiceProvider =
     StateNotifierProvider<TimerService, WorkoutSession>((ref) {
-      final audioService = ref.watch(audioServiceProvider);
-      final vibrationService = ref.watch(vibrationServiceProvider);
-      final settings = ref.watch(settingsServiceProvider);
+      final audioService = ref.read(audioServiceProvider);
+      final vibrationService = ref.read(vibrationServiceProvider);
+      final settings = ref.read(settingsServiceProvider);
 
       final timerService = TimerService(
         audioService: audioService,
