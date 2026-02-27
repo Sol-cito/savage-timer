@@ -118,7 +118,39 @@ void main(List<String> args) async {
     print(iosNote);
   }
 
-  // 5. Print summary
+  // 5. Restore local Flutter SDK config.
+  // Shorebird rewrites Generated.xcconfig and flutter_export_environment.sh
+  // to point FLUTTER_ROOT at its own bundled Flutter (newer version where
+  // APIs like `elevation` in semantics have been removed). This causes Xcode
+  // archive builds to fail. Delete the generated files and run `flutter build`
+  // to regenerate them with the local Flutter SDK paths.
+  print('\n--- Restoring iOS config to local Flutter SDK ---');
+  _deleteIfExists('ios/Flutter/Generated.xcconfig');
+  _deleteIfExists('ios/Flutter/flutter_export_environment.sh');
+
+  final cleanResult = await Process.run('flutter', [
+    'build',
+    'ios',
+    '--config-only',
+  ]);
+  if (cleanResult.exitCode != 0) {
+    // Fallback: try flutter pub get
+    stderr.write(cleanResult.stderr);
+    await Process.run('flutter', ['pub', 'get']);
+  }
+
+  final podResult = await Process.run(
+    'pod',
+    ['install'],
+    workingDirectory: 'ios',
+  );
+  if (podResult.exitCode != 0) {
+    stderr.writeln('Warning: pod install failed.');
+    stderr.write(podResult.stderr);
+  }
+  print('iOS config restored to local Flutter SDK.');
+
+  // 6. Print summary
   print('\n========== BUILD SUMMARY ==========');
   print('Version: $currentVersion');
   if (aabOutputPath != null) {
@@ -128,4 +160,12 @@ void main(List<String> args) async {
     print('iOS:     $iosNote');
   }
   print('===================================');
+}
+
+void _deleteIfExists(String path) {
+  final file = File(path);
+  if (file.existsSync()) {
+    file.deleteSync();
+    print('Deleted $path');
+  }
 }
