@@ -1,13 +1,16 @@
 // ignore_for_file: avoid_print
 import 'dart:io';
 
-/// Build script for Savage Timer.
+/// Build script for Savage Timer (uses Shorebird for OTA-capable releases).
 ///
 /// Usage:
 ///   dart run scripts/build.dart               # Build both Android AAB and iOS
 ///   dart run scripts/build.dart --android-only # Build Android AAB only
 ///   dart run scripts/build.dart --ios-only     # Build iOS only
 ///   dart run scripts/build.dart --no-increment # Skip build number increment
+///
+///
+///   For shorebird patch, " shorebird patch android / shorebird patch ios "
 void main(List<String> args) async {
   final androidOnly = args.contains('--android-only');
   final iosOnly = args.contains('--ios-only');
@@ -75,19 +78,19 @@ void main(List<String> args) async {
   String? aabOutputPath;
   String? iosNote;
 
-  // 3. Build Android AAB
+  // 3. Build Android AAB (via Shorebird)
   if (buildAndroid) {
-    print('\n--- Building Android AAB ---');
-    final aabResult = await Process.run('flutter', [
-      'build',
-      'appbundle',
-      '--release',
+    print('\n--- Building Android AAB (Shorebird) ---');
+    final aabResult = await Process.run('shorebird', [
+      'release',
+      'android',
+      '--force',
     ]);
     stdout.write(aabResult.stdout);
     stderr.write(aabResult.stderr);
 
     if (aabResult.exitCode != 0) {
-      stderr.writeln('Error: Android AAB build failed.');
+      stderr.writeln('Error: Shorebird Android release failed.');
       exit(1);
     }
 
@@ -102,24 +105,24 @@ void main(List<String> args) async {
     }
   }
 
-  // 4. Build iOS
+  // 4. Build iOS (via Shorebird)
   if (buildIos) {
-    print('\n--- Building iOS Archive ---');
-    final iosResult = await Process.run('flutter', [
-      'build',
-      'ipa',
-      '--release',
+    print('\n--- Building iOS Archive (Shorebird) ---');
+    final iosResult = await Process.run('shorebird', [
+      'release',
+      'ios',
+      '--force',
     ]);
     stdout.write(iosResult.stdout);
     stderr.write(iosResult.stderr);
 
     if (iosResult.exitCode != 0) {
-      stderr.writeln('Error: iOS build failed.');
+      stderr.writeln('Error: Shorebird iOS release failed.');
       exit(1);
     }
 
     iosNote =
-        'iOS archive built. Use Xcode or Transporter to upload to App Store Connect.';
+        'iOS archive built via Shorebird. Use Xcode or Transporter to upload to App Store Connect.';
     print(iosNote);
   }
 
