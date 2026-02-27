@@ -81,11 +81,7 @@ void main(List<String> args) async {
   // 3. Build Android AAB (via Shorebird)
   if (buildAndroid) {
     print('\n--- Building Android AAB (Shorebird) ---');
-    final aabResult = await Process.run('shorebird', [
-      'release',
-      'android',
-      '--force',
-    ]);
+    final aabResult = await Process.run('shorebird', ['release', 'android']);
     stdout.write(aabResult.stdout);
     stderr.write(aabResult.stderr);
 
@@ -108,11 +104,7 @@ void main(List<String> args) async {
   // 4. Build iOS (via Shorebird)
   if (buildIos) {
     print('\n--- Building iOS Archive (Shorebird) ---');
-    final iosResult = await Process.run('shorebird', [
-      'release',
-      'ios',
-      '--force',
-    ]);
+    final iosResult = await Process.run('shorebird', ['release', 'ios']);
     stdout.write(iosResult.stdout);
     stderr.write(iosResult.stderr);
 
