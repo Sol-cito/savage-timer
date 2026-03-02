@@ -483,7 +483,12 @@ class TimerService extends StateNotifier<WorkoutSession> {
     final roundDuration = _settings.roundDurationSeconds;
     // Leave room for bell + start voice + voice buffer at the start
     final minStartDelay = _bellDurationSeconds + _voiceBufferSeconds;
-    final maxPlayTime = roundDuration - _voiceBufferSeconds;
+    // Stop scheduling voices early enough so the last clip finishes before the
+    // 30-second bell (or round end). The voice buffer accounts for clip length.
+    final endBuffer = _settings.enableLastSecondsAlert
+        ? _settings.lastSecondsThreshold + _voiceBufferSeconds
+        : _voiceBufferSeconds;
+    final maxPlayTime = roundDuration - endBuffer;
 
     if (maxPlayTime <= minStartDelay) return; // round too short
 

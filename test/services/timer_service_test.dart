@@ -515,6 +515,7 @@ void main() {
           level: SavageLevel.level3,
           roundDuration: 60,
           totalRounds: 1,
+          enableLastSecondsAlert: false,
           random: seeded,
         );
 
