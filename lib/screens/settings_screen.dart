@@ -16,7 +16,8 @@ class SettingsScreen extends ConsumerWidget {
 
   bool _isTimerActive(WidgetRef ref) {
     final session = ref.read(timerServiceProvider);
-    return session.state == SessionState.running ||
+    return session.state == SessionState.preparing ||
+        session.state == SessionState.running ||
         session.state == SessionState.paused;
   }
 

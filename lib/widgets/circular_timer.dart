@@ -10,6 +10,7 @@ class CircularTimer extends StatelessWidget {
   final Color backgroundColor;
   final double size;
   final double strokeWidth;
+  final bool isCountdown;
 
   const CircularTimer({
     super.key,
@@ -19,6 +20,7 @@ class CircularTimer extends StatelessWidget {
     this.backgroundColor = Colors.grey,
     this.size = 280,
     this.strokeWidth = 18,
+    this.isCountdown = false,
   });
 
   @override
@@ -41,7 +43,7 @@ class CircularTimer extends StatelessWidget {
           Text(
             time,
             style: GoogleFonts.oswald(
-              fontSize: size * 0.25,
+              fontSize: isCountdown ? size * 0.45 : size * 0.25,
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),

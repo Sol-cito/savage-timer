@@ -200,6 +200,7 @@ void main() {
     int totalRounds = 2,
     bool enableMotivationalSound = true,
     Random? random,
+    int preparationSeconds = 0,
   }) {
     return TimerService(
       audioService: fakeAudio,
@@ -212,6 +213,7 @@ void main() {
         enableMotivationalSound: enableMotivationalSound,
       ),
       random: random,
+      preparationSeconds: preparationSeconds,
     );
   }
 
@@ -880,6 +882,7 @@ void main() {
             totalRounds: 1,
             enableLastSecondsAlert: false,
           ),
+          preparationSeconds: 0,
         );
 
         service.start();
@@ -1495,6 +1498,7 @@ void main() {
           enableLastSecondsAlert: enableLastSecondsAlert,
           lastSecondsThreshold: lastSecondsThreshold,
         ),
+        preparationSeconds: 0,
       );
     }
 
@@ -1951,6 +1955,358 @@ void main() {
 
         service.reset();
       });
+    });
+  });
+
+  group('Preparation countdown', () {
+    test('start enters preparing state with 3-second countdown', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          preparationSeconds: 3,
+        );
+
+        service.start();
+        expect(service.state.state, SessionState.preparing);
+        expect(service.state.remainingSeconds, 3);
+        expect(service.state.preparationCountdown, '3');
+        expect(service.state.phaseLabel, 'GET READY');
+        expect(service.state.progress, 0.0);
+        expect(service.state.elapsedSeconds, 0);
+        expect(service.state.nextPhaseLabel, isNull);
+
+        service.reset();
+      });
+    });
+
+    test('countdown ticks 3 -> 2 -> 1 -> running', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          preparationSeconds: 3,
+        );
+
+        service.start();
+        expect(service.state.state, SessionState.preparing);
+        expect(service.state.remainingSeconds, 3);
+
+        async.elapse(const Duration(seconds: 1));
+        expect(service.state.state, SessionState.preparing);
+        expect(service.state.remainingSeconds, 2);
+
+        async.elapse(const Duration(seconds: 1));
+        expect(service.state.state, SessionState.preparing);
+        expect(service.state.remainingSeconds, 1);
+
+        async.elapse(const Duration(seconds: 1));
+        expect(service.state.state, SessionState.running);
+        expect(service.state.remainingSeconds, 60);
+
+        service.reset();
+      });
+    });
+
+    test('plays countdown audio at each tick', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          preparationSeconds: 3,
+        );
+
+        service.start();
+        // playCount(3) on start
+        expect(fakeAudio.calls, contains('playCount_3'));
+
+        async.elapse(const Duration(seconds: 1));
+        expect(fakeAudio.calls, contains('playCount_2'));
+
+        async.elapse(const Duration(seconds: 1));
+        expect(fakeAudio.calls, contains('playCount_1'));
+
+        async.elapse(const Duration(seconds: 1));
+        // playCountStart when transitioning to running
+        expect(fakeAudio.calls, contains('playCountStart'));
+
+        service.reset();
+      });
+    });
+
+    test('vibrates on transition to running', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          preparationSeconds: 3,
+        );
+
+        service.start();
+        fakeVibration.clearCalls();
+
+        async.elapse(const Duration(seconds: 3));
+        expect(fakeVibration.calls, contains('roundStart'));
+
+        service.reset();
+      });
+    });
+
+    test('pause during preparation', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          preparationSeconds: 3,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 1));
+        expect(service.state.remainingSeconds, 2);
+
+        service.pause();
+        expect(service.state.state, SessionState.paused);
+        expect(service.state.remainingSeconds, 2);
+
+        // Time should not advance while paused
+        async.elapse(const Duration(seconds: 5));
+        expect(service.state.state, SessionState.paused);
+
+        service.reset();
+      });
+    });
+
+    test('resume after pause during preparation', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          preparationSeconds: 3,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 1));
+        expect(service.state.remainingSeconds, 2);
+
+        service.pause();
+        service.resume();
+        expect(service.state.state, SessionState.preparing);
+        expect(service.state.remainingSeconds, 2);
+
+        // Should continue countdown from where it left off
+        async.elapse(const Duration(seconds: 2));
+        expect(service.state.state, SessionState.running);
+        expect(service.state.remainingSeconds, 60);
+
+        service.reset();
+      });
+    });
+
+    test('skip during preparation goes to running', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          preparationSeconds: 3,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 1));
+
+        service.skip();
+        expect(service.state.state, SessionState.running);
+        expect(service.state.remainingSeconds, 60);
+        expect(fakeAudio.calls, contains('playCountStart'));
+
+        service.reset();
+      });
+    });
+
+    test('reset during preparation', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          preparationSeconds: 3,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 1));
+
+        service.reset();
+        expect(service.state.state, SessionState.idle);
+        expect(service.state.remainingSeconds, 60);
+
+        // Prep timer should not fire
+        async.elapse(const Duration(seconds: 5));
+        expect(service.state.state, SessionState.idle);
+      });
+    });
+
+    test('preparationSeconds 0 skips preparation entirely', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          preparationSeconds: 0,
+        );
+
+        service.start();
+        expect(service.state.state, SessionState.running);
+        expect(service.state.remainingSeconds, 60);
+
+        service.reset();
+      });
+    });
+
+    test('double start during preparing is a no-op', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          preparationSeconds: 3,
+        );
+
+        service.start();
+        expect(service.state.state, SessionState.preparing);
+        expect(service.state.remainingSeconds, 3);
+
+        // Calling start again should not restart
+        service.start();
+        expect(service.state.state, SessionState.preparing);
+        expect(service.state.remainingSeconds, 3);
+
+        service.reset();
+      });
+    });
+
+    test('start after completed enters preparation', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 10,
+          totalRounds: 1,
+          preparationSeconds: 3,
+        );
+
+        service.start();
+        // Advance through prep (3s) + full round (10s)
+        async.elapse(const Duration(seconds: 13));
+        expect(service.state.state, SessionState.completed);
+
+        // Start again should enter preparing
+        service.start();
+        expect(service.state.state, SessionState.preparing);
+        expect(service.state.remainingSeconds, 3);
+
+        service.reset();
+      });
+    });
+
+    test('skip while paused during preparation goes to running', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          preparationSeconds: 3,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 1));
+        service.pause();
+        expect(service.state.state, SessionState.paused);
+
+        service.skip();
+        expect(service.state.state, SessionState.running);
+        expect(service.state.remainingSeconds, 60);
+
+        service.reset();
+      });
+    });
+
+    test('reconcile during preparing is a no-op', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          preparationSeconds: 3,
+        );
+
+        service.start();
+        expect(service.state.state, SessionState.preparing);
+        expect(service.state.remainingSeconds, 3);
+
+        service.reconcile();
+        // Should remain unchanged
+        expect(service.state.state, SessionState.preparing);
+        expect(service.state.remainingSeconds, 3);
+
+        service.reset();
+      });
+    });
+
+    test('startKeepAlive is called when preparation begins', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          preparationSeconds: 3,
+        );
+
+        fakeAudio.calls.clear();
+        service.start();
+        expect(fakeAudio.calls, contains('startKeepAlive'));
+
+        service.reset();
+      });
+    });
+
+    test('preparation flows into normal round timer correctly', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 10,
+          restDuration: 5,
+          totalRounds: 2,
+          preparationSeconds: 3,
+        );
+
+        service.start();
+        // Advance through prep
+        async.elapse(const Duration(seconds: 3));
+        expect(service.state.state, SessionState.running);
+        expect(service.state.phase, SessionPhase.round);
+        expect(service.state.currentRound, 1);
+
+        // Advance through round 1
+        async.elapse(const Duration(seconds: 10));
+        expect(service.state.phase, SessionPhase.rest);
+
+        // Advance through rest
+        async.elapse(const Duration(seconds: 5));
+        expect(service.state.phase, SessionPhase.round);
+        expect(service.state.currentRound, 2);
+
+        // Advance through round 2
+        async.elapse(const Duration(seconds: 10));
+        expect(service.state.state, SessionState.completed);
+
+        service.reset();
+      });
+    });
+
+    test('nextPhaseDurationSeconds is null during preparing', () {
+      final session = const WorkoutSession(
+        state: SessionState.preparing,
+        remainingSeconds: 2,
+      );
+      expect(session.nextPhaseDurationSeconds, isNull);
+    });
+
+    test('preparationCountdown returns null for non-preparing states', () {
+      expect(
+        const WorkoutSession(state: SessionState.idle).preparationCountdown,
+        isNull,
+      );
+      expect(
+        const WorkoutSession(state: SessionState.running, remainingSeconds: 30)
+            .preparationCountdown,
+        isNull,
+      );
+      expect(
+        const WorkoutSession(state: SessionState.paused, remainingSeconds: 30)
+            .preparationCountdown,
+        isNull,
+      );
+      expect(
+        const WorkoutSession(state: SessionState.completed).preparationCountdown,
+        isNull,
+      );
     });
   });
 }

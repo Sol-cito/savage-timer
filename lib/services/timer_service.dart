@@ -11,6 +11,7 @@ import 'vibration_service.dart';
 
 class TimerService extends StateNotifier<WorkoutSession> {
   Timer? _timer;
+  Timer? _prepTimer;
   Timer? _startVoiceTimer;
   Timer? _restVoiceTimer;
   final List<Timer> _exerciseVoiceTimers = [];
@@ -20,6 +21,9 @@ class TimerService extends StateNotifier<WorkoutSession> {
   final Random _random;
 
   bool _lastSecondsAlertTriggered = false;
+  bool _pausedDuringPreparation = false;
+
+  final int _preparationSeconds;
 
   /// Wall-clock tracking for iOS background reconciliation.
   DateTime? _phaseStartedAt;
@@ -36,10 +40,12 @@ class TimerService extends StateNotifier<WorkoutSession> {
     required VibrationService vibrationService,
     required TimerSettings settings,
     Random? random,
+    int preparationSeconds = 3,
   }) : _audioService = audioService,
        _vibrationService = vibrationService,
        _settings = settings,
        _random = random ?? Random(),
+       _preparationSeconds = preparationSeconds,
        super(
          WorkoutSession(
            totalRounds: settings.totalRounds,
@@ -69,43 +75,118 @@ class TimerService extends StateNotifier<WorkoutSession> {
   }
 
   void start() {
-    if (state.state == SessionState.running) return;
+    if (state.state == SessionState.running ||
+        state.state == SessionState.preparing) {
+      return;
+    }
 
     if (state.state == SessionState.idle ||
         state.state == SessionState.completed) {
       _resetState();
     }
 
-    state = state.copyWith(state: SessionState.running);
     _audioService.startKeepAlive();
-    _startTimer();
 
-    // Play count_start and vibration
-    _audioService.playCountStart(
+    if (_preparationSeconds <= 0) {
+      // Skip preparation, go straight to running
+      state = state.copyWith(state: SessionState.running);
+      _startTimer();
+      _audioService.playCountStart(
+        _settings.savageLevel,
+        _settings.enableMotivationalSound,
+      );
+      if (_settings.enableVibration) _vibrationService.roundStart();
+      if (_settings.enableMotivationalSound) {
+        _startVoiceTimer?.cancel();
+        _startVoiceTimer = Timer(
+          const Duration(seconds: _bellDurationSeconds),
+          () {
+            if (state.state == SessionState.running &&
+                state.phase == SessionPhase.round) {
+              _audioService.playRandomStartVoice(_settings.savageLevel);
+            }
+          },
+        );
+      }
+      _scheduleExerciseVoices();
+      return;
+    }
+
+    // Enter preparation countdown
+    state = state.copyWith(
+      state: SessionState.preparing,
+      remainingSeconds: _preparationSeconds,
+    );
+    _audioService.playCount(
+      _preparationSeconds,
       _settings.savageLevel,
       _settings.enableMotivationalSound,
     );
-    if (_settings.enableVibration) _vibrationService.roundStart();
+    _startPrepTimer();
+  }
 
-    // Schedule start voice after count_start finishes (avoid overlap)
-    if (_settings.enableMotivationalSound) {
-      _startVoiceTimer?.cancel();
-      _startVoiceTimer = Timer(
-        const Duration(seconds: _bellDurationSeconds),
-        () {
-          if (state.state == SessionState.running &&
-              state.phase == SessionPhase.round) {
-            _audioService.playRandomStartVoice(_settings.savageLevel);
-          }
-        },
+  void _startPrepTimer() {
+    _prepTimer?.cancel();
+    _prepTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _prepTick(),
+    );
+  }
+
+  void _prepTick() {
+    if (state.state != SessionState.preparing) return;
+
+    final newRemaining = state.remainingSeconds - 1;
+
+    if (newRemaining <= 0) {
+      // Preparation done — transition to running
+      _prepTimer?.cancel();
+      _audioService.playCountStart(
+        _settings.savageLevel,
+        _settings.enableMotivationalSound,
       );
-    }
+      if (_settings.enableVibration) _vibrationService.roundStart();
 
-    // Schedule exercise voices (after bell + start voice gap)
-    _scheduleExerciseVoices();
+      state = state.copyWith(
+        state: SessionState.running,
+        remainingSeconds: _settings.roundDurationSeconds,
+      );
+      _startTimer();
+
+      // Schedule start voice after count_start finishes
+      if (_settings.enableMotivationalSound) {
+        _startVoiceTimer?.cancel();
+        _startVoiceTimer = Timer(
+          const Duration(seconds: _bellDurationSeconds),
+          () {
+            if (state.state == SessionState.running &&
+                state.phase == SessionPhase.round) {
+              _audioService.playRandomStartVoice(_settings.savageLevel);
+            }
+          },
+        );
+      }
+
+      _scheduleExerciseVoices();
+    } else {
+      _audioService.playCount(
+        newRemaining,
+        _settings.savageLevel,
+        _settings.enableMotivationalSound,
+      );
+      state = state.copyWith(remainingSeconds: newRemaining);
+    }
   }
 
   void pause() {
+    if (state.state == SessionState.preparing) {
+      _prepTimer?.cancel();
+      _pausedDuringPreparation = true;
+      _audioService.stop();
+      _audioService.stopKeepAlive();
+      state = state.copyWith(state: SessionState.paused);
+      return;
+    }
     if (state.state != SessionState.running) return;
     _timer?.cancel();
     _startVoiceTimer?.cancel();
@@ -118,6 +199,18 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
   void resume() {
     if (state.state != SessionState.paused) return;
+    if (_pausedDuringPreparation) {
+      _pausedDuringPreparation = false;
+      state = state.copyWith(state: SessionState.preparing);
+      _audioService.startKeepAlive();
+      _audioService.playCount(
+        state.remainingSeconds,
+        _settings.savageLevel,
+        _settings.enableMotivationalSound,
+      );
+      _startPrepTimer();
+      return;
+    }
     state = state.copyWith(state: SessionState.running);
     _audioService.startKeepAlive();
     _startTimer();
@@ -126,6 +219,42 @@ class TimerService extends StateNotifier<WorkoutSession> {
   void skip() {
     if (state.state == SessionState.idle ||
         state.state == SessionState.completed) {
+      return;
+    }
+
+    // During preparation, skip straight to running
+    if (state.state == SessionState.preparing ||
+        _pausedDuringPreparation) {
+      _prepTimer?.cancel();
+      _pausedDuringPreparation = false;
+
+      state = state.copyWith(
+        state: SessionState.running,
+        remainingSeconds: _settings.roundDurationSeconds,
+      );
+      if (state.state == SessionState.running) {
+        _audioService.startKeepAlive();
+      }
+      _audioService.playCountStart(
+        _settings.savageLevel,
+        _settings.enableMotivationalSound,
+      );
+      if (_settings.enableVibration) _vibrationService.roundStart();
+      _startTimer();
+
+      if (_settings.enableMotivationalSound) {
+        _startVoiceTimer?.cancel();
+        _startVoiceTimer = Timer(
+          const Duration(seconds: _bellDurationSeconds),
+          () {
+            if (state.state == SessionState.running &&
+                state.phase == SessionPhase.round) {
+              _audioService.playRandomStartVoice(_settings.savageLevel);
+            }
+          },
+        );
+      }
+      _scheduleExerciseVoices();
       return;
     }
 
@@ -148,9 +277,11 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
   void reset() {
     _timer?.cancel();
+    _prepTimer?.cancel();
     _startVoiceTimer?.cancel();
     _restVoiceTimer?.cancel();
     _cancelExerciseVoiceTimers();
+    _pausedDuringPreparation = false;
     _audioService.stop();
     _audioService.stopKeepAlive();
     _resetState();
@@ -159,6 +290,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
   /// Called when the app returns to foreground. Uses wall-clock time to
   /// catch up with any ticks that were missed while iOS suspended the isolate.
   void reconcile() {
+    if (state.state == SessionState.preparing) return;
     if (state.state != SessionState.running) return;
     if (_phaseStartedAt == null) return;
 
@@ -379,6 +511,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
   @override
   void dispose() {
     _timer?.cancel();
+    _prepTimer?.cancel();
     _startVoiceTimer?.cancel();
     _restVoiceTimer?.cancel();
     _cancelExerciseVoiceTimers();

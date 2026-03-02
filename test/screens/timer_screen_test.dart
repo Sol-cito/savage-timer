@@ -175,6 +175,24 @@ void main() {
       );
     });
   });
+  group('TimerScreen preparing state', () {
+    test('preparing state returns grey background for all levels', () {
+      const session = WorkoutSession(state: SessionState.preparing);
+      for (final level in SavageLevel.values) {
+        final colors = _getExpectedBackgroundColors(session, level);
+        expect(colors[0], Colors.grey.shade900);
+        expect(colors[1], Colors.grey.shade800);
+      }
+    });
+
+    test('preparing state returns white progress color', () {
+      const session = WorkoutSession(state: SessionState.preparing);
+      for (final level in SavageLevel.values) {
+        expect(_getExpectedProgressColor(session, level), Colors.white);
+      }
+    });
+  });
+
   group('TimerScreen neutral mode (motivational off)', () {
     test('background uses blueGrey during round when motivational off', () {
       const session = WorkoutSession(
@@ -322,7 +340,8 @@ List<Color> _getExpectedBackgroundColors(
   if (session.state == SessionState.completed) {
     return [Colors.green.shade900, Colors.green.shade700];
   }
-  if (session.state == SessionState.idle) {
+  if (session.state == SessionState.idle ||
+      session.state == SessionState.preparing) {
     return [Colors.grey.shade900, Colors.grey.shade800];
   }
   if (session.isResting) {
@@ -359,6 +378,9 @@ Color _getExpectedProgressColor(
   SavageLevel level, [
   bool motivationalOn = true,
 ]) {
+  if (session.state == SessionState.preparing) {
+    return Colors.white;
+  }
   if (session.state == SessionState.completed) {
     return Colors.green;
   }

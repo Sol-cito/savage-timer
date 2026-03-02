@@ -109,8 +109,9 @@ class TimerScreen extends ConsumerWidget {
                 const Spacer(),
                 // Circular timer — scales with screen
                 CircularTimer(
-                  time: session.formattedTime,
+                  time: session.preparationCountdown ?? session.formattedTime,
                   progress: session.progress,
+                  isCountdown: session.state == SessionState.preparing,
                   progressColor: _getProgressColor(
                     session,
                     settings.savageLevel,
@@ -143,7 +144,8 @@ class TimerScreen extends ConsumerWidget {
     TimerService timerService,
     double s,
   ) {
-    final isRunning = session.state == SessionState.running;
+    final isPreparing = session.state == SessionState.preparing;
+    final isRunning = session.state == SessionState.running || isPreparing;
     final isPaused = session.state == SessionState.paused;
     final isIdle = session.state == SessionState.idle;
     final isCompleted = session.state == SessionState.completed;
@@ -206,7 +208,8 @@ class TimerScreen extends ConsumerWidget {
     if (session.state == SessionState.completed) {
       return [Colors.green.shade900, Colors.green.shade700];
     }
-    if (session.state == SessionState.idle) {
+    if (session.state == SessionState.idle ||
+        session.state == SessionState.preparing) {
       return [Colors.grey.shade900, Colors.grey.shade800];
     }
     if (session.isResting) {
@@ -245,6 +248,9 @@ class TimerScreen extends ConsumerWidget {
     SavageLevel level,
     bool motivationalOn,
   ) {
+    if (session.state == SessionState.preparing) {
+      return Colors.white;
+    }
     if (session.state == SessionState.completed) {
       return Colors.green;
     }

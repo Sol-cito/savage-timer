@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum SessionState { idle, running, paused, completed }
+enum SessionState { idle, preparing, running, paused, completed }
 
 enum SessionPhase { round, rest }
 
@@ -29,7 +29,14 @@ class WorkoutSession extends Equatable {
 
   bool get isInLastSeconds => remainingSeconds <= 30 && remainingSeconds > 0;
 
+  /// Returns the countdown number ("3", "2", "1") during preparation, null otherwise.
+  String? get preparationCountdown {
+    if (state != SessionState.preparing) return null;
+    return '$remainingSeconds';
+  }
+
   double get progress {
+    if (state == SessionState.preparing) return 0.0;
     final totalSeconds =
         phase == SessionPhase.round
             ? roundDurationSeconds
@@ -46,6 +53,7 @@ class WorkoutSession extends Equatable {
 
   String get phaseLabel {
     if (state == SessionState.idle) return 'READY';
+    if (state == SessionState.preparing) return 'GET READY';
     if (state == SessionState.completed) return 'DONE';
     return phase == SessionPhase.round ? 'ROUND $currentRound' : 'REST';
   }
@@ -61,7 +69,7 @@ class WorkoutSession extends Equatable {
   }
 
   int get elapsedSeconds {
-    if (state == SessionState.idle) return 0;
+    if (state == SessionState.idle || state == SessionState.preparing) return 0;
     if (state == SessionState.completed) return totalDurationSeconds;
     if (phase == SessionPhase.round) {
       return (currentRound - 1) * (roundDurationSeconds + restDurationSeconds) +
@@ -80,7 +88,9 @@ class WorkoutSession extends Equatable {
   }
 
   String? get nextPhaseLabel {
-    if (state == SessionState.idle || state == SessionState.completed) {
+    if (state == SessionState.idle ||
+        state == SessionState.preparing ||
+        state == SessionState.completed) {
       return null;
     }
     if (phase == SessionPhase.round) {
@@ -90,7 +100,9 @@ class WorkoutSession extends Equatable {
   }
 
   int? get nextPhaseDurationSeconds {
-    if (state == SessionState.idle || state == SessionState.completed) {
+    if (state == SessionState.idle ||
+        state == SessionState.preparing ||
+        state == SessionState.completed) {
       return null;
     }
     if (phase == SessionPhase.round) {
