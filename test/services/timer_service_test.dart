@@ -496,6 +496,7 @@ void main() {
         final service = createService(
           roundDuration: 180,
           totalRounds: 1,
+          enableLastSecondsAlert: false,
           random: seeded,
         );
 
@@ -515,6 +516,7 @@ void main() {
         final service = createService(
           roundDuration: 300,
           totalRounds: 1,
+          enableLastSecondsAlert: false,
           random: seeded,
         );
 
@@ -1016,6 +1018,7 @@ void main() {
         final service = createService(
           roundDuration: 90,
           totalRounds: 1,
+          enableLastSecondsAlert: false,
           random: seeded,
         );
 
@@ -1035,6 +1038,7 @@ void main() {
         final service = createService(
           roundDuration: 91,
           totalRounds: 1,
+          enableLastSecondsAlert: false,
           random: seeded,
         );
 
@@ -1054,6 +1058,7 @@ void main() {
         final service = createService(
           roundDuration: 180,
           totalRounds: 1,
+          enableLastSecondsAlert: false,
           random: seeded,
         );
 
@@ -1073,6 +1078,7 @@ void main() {
         final service = createService(
           roundDuration: 181,
           totalRounds: 1,
+          enableLastSecondsAlert: false,
           random: seeded,
         );
 
@@ -2425,7 +2431,7 @@ void main() {
       });
     });
 
-    test('no exercise voices fire after 30sec alert triggers', () {
+    test('exactly one exercise voice fires during last 30 seconds', () {
       fakeAsync((async) {
         // Use a 60s round so exercise voices would normally be scheduled
         // in the middle of the round and could overlap with the last 30s.
@@ -2445,11 +2451,11 @@ void main() {
         async.elapse(const Duration(seconds: 1));
         expect(fakeAudio.calls, contains('play30SecBell'));
 
-        // From this point on, no exercise voices should play for the
-        // rest of the round (the remaining 30 seconds).
+        // After the alert, exactly one exercise voice should play
+        // (scheduled by _scheduleLastSecondsVoice), not more.
         fakeAudio.exerciseVoiceCount = 0;
         async.elapse(const Duration(seconds: 30));
-        expect(fakeAudio.exerciseVoiceCount, 0);
+        expect(fakeAudio.exerciseVoiceCount, 1);
 
         service.reset();
       });

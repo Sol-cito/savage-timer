@@ -14,6 +14,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
   Timer? _prepTimer;
   Timer? _startVoiceTimer;
   Timer? _restVoiceTimer;
+  Timer? _lastSecondsVoiceTimer;
 
   final List<Timer> _exerciseVoiceTimers = [];
   final AudioService _audioService;
@@ -172,6 +173,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _timer?.cancel();
     _startVoiceTimer?.cancel();
     _restVoiceTimer?.cancel();
+    _lastSecondsVoiceTimer?.cancel();
 
     _cancelExerciseVoiceTimers();
     _audioService.stop();
@@ -232,6 +234,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _timer?.cancel();
     _startVoiceTimer?.cancel();
     _restVoiceTimer?.cancel();
+    _lastSecondsVoiceTimer?.cancel();
 
     _cancelExerciseVoiceTimers();
 
@@ -328,6 +331,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
       // so nothing talks over the bell + count_30seconds sequence.
       _cancelExerciseVoiceTimers();
       _playLastSecondsAlert();
+      _scheduleLastSecondsVoice();
     }
 
     // Countdown sounds at 3, 2, 1
@@ -356,11 +360,50 @@ class TimerService extends StateNotifier<WorkoutSession> {
     );
   }
 
+  /// Schedules one exercise voice during the last 30 seconds, placed after
+  /// the bell+count_30seconds sequence and finishing before the 3-2-1
+  /// countdown. The voice uses the duration-check to avoid overlap.
+  void _scheduleLastSecondsVoice() {
+    _lastSecondsVoiceTimer?.cancel();
+
+    if (!_settings.enableMotivationalSound) return;
+
+    final threshold = _settings.lastSecondsThreshold;
+    // Bell+count_30seconds takes ~3s. Schedule voice after that.
+    // The 3-2-1 countdown starts at remainingSeconds=3, so the voice must
+    // finish by then. Pick a random delay between 4s and (threshold - 8)s
+    // after the alert fires. The _voiceBufferSeconds (8) covers a voice clip
+    // plus 1s margin before the countdown.
+    final minDelay = _bellDurationSeconds + 1; // after bell+count finishes
+    final maxDelay = threshold - _voiceBufferSeconds - _bellDurationSeconds;
+
+    if (maxDelay <= minDelay) return; // not enough room
+
+    final delay = minDelay + _random.nextInt(maxDelay - minDelay);
+
+    _lastSecondsVoiceTimer = Timer(Duration(seconds: delay), () {
+      if (state.phase != SessionPhase.round ||
+          state.state != SessionState.running) {
+        return;
+      }
+      // Use duration-aware playback so the voice won't overlap with 3-2-1.
+      // The countdown plays on _countPlayer at remainingSeconds 3,2,1 but
+      // the voice uses _voicePlayer — however we still want it to finish
+      // naturally, so pass a threshold of 3 (countdown start).
+      _audioService.playRandomExerciseVoiceIfFits(
+        _settings.savageLevel,
+        _bellDurationSeconds, // treat the 3-2-1 countdown as the deadline
+        () => state.remainingSeconds,
+      );
+    });
+  }
+
   void _handlePhaseEnd() {
     if (state.phase == SessionPhase.round) {
       // Round ended — cancel any remaining voice timers
       _cancelExerciseVoiceTimers();
       _startVoiceTimer?.cancel();
+      _lastSecondsVoiceTimer?.cancel();
   
       if (_settings.enableVibration) _vibrationService.roundEnd();
 
@@ -529,6 +572,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _prepTimer?.cancel();
     _startVoiceTimer?.cancel();
     _restVoiceTimer?.cancel();
+    _lastSecondsVoiceTimer?.cancel();
 
     _cancelExerciseVoiceTimers();
     super.dispose();
