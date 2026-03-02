@@ -223,9 +223,24 @@ class AudioService {
       await _voicePlayer.stop();
       await _voicePlayer.setSource(AssetSource(relativePath));
 
-      final duration = await _voicePlayer.getDuration();
-      if (duration == null ||
-          duration.inSeconds > maxSeconds) {
+      // getDuration() can return null or Duration.zero on iOS immediately
+      // after setSource(). Use onDurationChanged to get a reliable value.
+      Duration? duration = await _voicePlayer.getDuration();
+      if (duration == null || duration.inMilliseconds <= 0) {
+        try {
+          duration = await _voicePlayer.onDurationChanged
+              .first
+              .timeout(const Duration(seconds: 2));
+        } catch (_) {
+          // Timed out — can't determine duration, skip to be safe.
+          return false;
+        }
+      }
+
+      // Use milliseconds to avoid truncation (e.g. 7.8s → 7s with inSeconds).
+      // Add 1-second safety margin for timer tick jitter.
+      final maxMs = maxSeconds * 1000 - 1000;
+      if (duration.inMilliseconds > maxMs) {
         return false;
       }
 
