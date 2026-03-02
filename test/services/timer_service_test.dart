@@ -215,6 +215,8 @@ void main() {
     int restDuration = 10,
     int totalRounds = 2,
     bool enableMotivationalSound = true,
+    bool enableLastSecondsAlert = true,
+    int lastSecondsThreshold = 30,
     Random? random,
     int preparationSeconds = 0,
   }) {
@@ -227,6 +229,8 @@ void main() {
         totalRounds: totalRounds,
         savageLevel: level,
         enableMotivationalSound: enableMotivationalSound,
+        enableLastSecondsAlert: enableLastSecondsAlert,
+        lastSecondsThreshold: lastSecondsThreshold,
       ),
       random: random,
       preparationSeconds: preparationSeconds,
@@ -451,6 +455,7 @@ void main() {
         final service = createService(
           roundDuration: 60,
           totalRounds: 1,
+          enableLastSecondsAlert: false,
           random: seeded,
         );
 
@@ -529,6 +534,7 @@ void main() {
             level: level,
             roundDuration: 60,
             totalRounds: 1,
+            enableLastSecondsAlert: false,
             random: seeded,
           );
 
@@ -651,6 +657,7 @@ void main() {
           roundDuration: 60,
           restDuration: 5,
           totalRounds: 2,
+          enableLastSecondsAlert: false,
           random: seeded,
         );
 
@@ -2356,6 +2363,36 @@ void main() {
         async.elapse(const Duration(seconds: 30));
         expect(fakeAudio.calls, contains('play30SecBell'));
         expect(fakeAudio.calls, contains('stopVoice'));
+
+        service.reset();
+      });
+    });
+
+    test('no exercise voices fire after 30sec alert triggers', () {
+      fakeAsync((async) {
+        // Use a 60s round so exercise voices would normally be scheduled
+        // in the middle of the round and could overlap with the last 30s.
+        final service = createService(
+          roundDuration: 60,
+          totalRounds: 1,
+          enableMotivationalSound: true,
+        );
+
+        service.start();
+
+        // Advance to just before the 30-sec threshold
+        async.elapse(const Duration(seconds: 29));
+        fakeAudio.exerciseVoiceCount = 0;
+
+        // Trigger the 30-sec alert (remaining goes from 31 to 30)
+        async.elapse(const Duration(seconds: 1));
+        expect(fakeAudio.calls, contains('play30SecBell'));
+
+        // From this point on, no exercise voices should play for the
+        // rest of the round (the remaining 30 seconds).
+        fakeAudio.exerciseVoiceCount = 0;
+        async.elapse(const Duration(seconds: 30));
+        expect(fakeAudio.exerciseVoiceCount, 0);
 
         service.reset();
       });

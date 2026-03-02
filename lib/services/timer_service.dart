@@ -355,10 +355,9 @@ class TimerService extends StateNotifier<WorkoutSession> {
       _lastSecondsAlertTriggered = true;
       if (_settings.enableVibration) _vibrationService.lastSecondsAlert();
 
-      // Stop any exercise voice so it doesn't talk over the announcement,
-      // then play bell and count_30seconds together. We await stopVoice
-      // and play30SecBell before starting count_30seconds so the warning
-      // player has its source loaded before the count player begins.
+      // Cancel scheduled exercise voices and stop any currently playing
+      // so nothing talks over the bell + count_30seconds sequence.
+      _cancelExerciseVoiceTimers();
       _playLastSecondsAlert();
     }
 
