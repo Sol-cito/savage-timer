@@ -29,18 +29,19 @@ class AudioService {
 
     // Configure audio session for background playback (critical for iOS)
     final session = await audio_session.AudioSession.instance;
-    await session.configure(audio_session.AudioSessionConfiguration(
-      avAudioSessionCategory: audio_session.AVAudioSessionCategory.playback,
-      avAudioSessionCategoryOptions:
-          audio_session.AVAudioSessionCategoryOptions.mixWithOthers,
-      avAudioSessionMode: audio_session.AVAudioSessionMode.defaultMode,
-      androidAudioAttributes: const audio_session.AndroidAudioAttributes(
-        contentType: audio_session.AndroidAudioContentType.music,
-        usage: audio_session.AndroidAudioUsage.media,
+    await session.configure(
+      audio_session.AudioSessionConfiguration(
+        avAudioSessionCategory: audio_session.AVAudioSessionCategory.playback,
+        avAudioSessionCategoryOptions:
+            audio_session.AVAudioSessionCategoryOptions.mixWithOthers,
+        avAudioSessionMode: audio_session.AVAudioSessionMode.defaultMode,
+        androidAudioAttributes: const audio_session.AndroidAudioAttributes(
+          contentType: audio_session.AndroidAudioContentType.music,
+          usage: audio_session.AndroidAudioUsage.media,
+        ),
+        androidAudioFocusGainType: audio_session.AndroidAudioFocusGainType.gain,
       ),
-      androidAudioFocusGainType:
-          audio_session.AndroidAudioFocusGainType.gain,
-    ));
+    );
     await session.setActive(true);
 
     await _tts.setLanguage('en-US');
@@ -163,12 +164,15 @@ class AudioService {
       final manifestJson = await rootBundle.loadString('AssetManifest.json');
       final manifest = json.decode(manifestJson) as Map<String, dynamic>;
 
-      final files = manifest.keys
-          .where((key) =>
-              key.startsWith(prefix) &&
-              key.endsWith('.mp3') &&
-              !key.contains('_full'))
-          .toList();
+      final files =
+          manifest.keys
+              .where(
+                (key) =>
+                    key.startsWith(prefix) &&
+                    key.endsWith('.mp3') &&
+                    !key.contains('_full'),
+              )
+              .toList();
 
       if (files.isEmpty) return;
 
@@ -189,6 +193,67 @@ class AudioService {
 
   Future<void> playRandomRestVoice(SavageLevel level) async {
     await _playRandomAsset(level, 'rest');
+  }
+
+  /// Picks a random rest voice and only plays it if it can finish before
+  /// the next-round countdown starts. [countdownThreshold] is typically `3`.
+  /// [getRemainingSeconds] must return current remaining rest seconds at call
+  /// time to account for async asset loading delays.
+  Future<bool> playRandomRestVoiceIfFits(
+    SavageLevel level,
+    int countdownThreshold,
+    int Function() getRemainingSeconds,
+  ) async {
+    final levelFolder = _getLevelFolder(level);
+    final prefix = 'assets/sounds/$levelFolder/rest/';
+
+    try {
+      final manifestJson = await rootBundle.loadString('AssetManifest.json');
+      final manifest = json.decode(manifestJson) as Map<String, dynamic>;
+
+      final files =
+          manifest.keys
+              .where(
+                (key) =>
+                    key.startsWith(prefix) &&
+                    key.endsWith('.mp3') &&
+                    !key.contains('_full'),
+              )
+              .toList();
+
+      if (files.isEmpty) return false;
+
+      final selected = files[Random().nextInt(files.length)];
+      final relativePath = selected.replaceFirst('assets/', '');
+
+      await _voicePlayer.stop();
+      await _voicePlayer.setSource(AssetSource(relativePath));
+
+      // iOS may return null/zero immediately after setSource().
+      Duration? duration = await _voicePlayer.getDuration();
+      if (duration == null || duration.inMilliseconds <= 0) {
+        try {
+          duration = await _voicePlayer.onDurationChanged.first.timeout(
+            const Duration(seconds: 2),
+          );
+        } catch (_) {
+          return false;
+        }
+      }
+
+      final currentRemaining = getRemainingSeconds();
+      final msUntilCountdown = (currentRemaining - countdownThreshold) * 1000;
+
+      // Keep a 1-second safety margin for tick jitter.
+      if (duration.inMilliseconds > msUntilCountdown - 1000) {
+        return false;
+      }
+
+      await _voicePlayer.resume();
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<void> playRandomExerciseVoice(SavageLevel level) async {
@@ -212,12 +277,15 @@ class AudioService {
       final manifestJson = await rootBundle.loadString('AssetManifest.json');
       final manifest = json.decode(manifestJson) as Map<String, dynamic>;
 
-      final files = manifest.keys
-          .where((key) =>
-              key.startsWith(prefix) &&
-              key.endsWith('.mp3') &&
-              !key.contains('_full'))
-          .toList();
+      final files =
+          manifest.keys
+              .where(
+                (key) =>
+                    key.startsWith(prefix) &&
+                    key.endsWith('.mp3') &&
+                    !key.contains('_full'),
+              )
+              .toList();
 
       if (files.isEmpty) return false;
 
@@ -232,9 +300,9 @@ class AudioService {
       Duration? duration = await _voicePlayer.getDuration();
       if (duration == null || duration.inMilliseconds <= 0) {
         try {
-          duration = await _voicePlayer.onDurationChanged
-              .first
-              .timeout(const Duration(seconds: 2));
+          duration = await _voicePlayer.onDurationChanged.first.timeout(
+            const Duration(seconds: 2),
+          );
         } catch (_) {
           // Timed out — can't determine duration, skip to be safe.
           return false;
@@ -290,44 +358,28 @@ class AudioService {
     SavageLevel level,
     bool enableMotivationalSound,
   ) async {
-    await _playCountSound(
-      'count_$number.mp3',
-      level,
-      enableMotivationalSound,
-    );
+    await _playCountSound('count_$number.mp3', level, enableMotivationalSound);
   }
 
   Future<void> playCountFinish(
     SavageLevel level,
     bool enableMotivationalSound,
   ) async {
-    await _playCountSound(
-      'count_finish.mp3',
-      level,
-      enableMotivationalSound,
-    );
+    await _playCountSound('count_finish.mp3', level, enableMotivationalSound);
   }
 
   Future<void> playCountRest(
     SavageLevel level,
     bool enableMotivationalSound,
   ) async {
-    await _playCountSound(
-      'count_rest.mp3',
-      level,
-      enableMotivationalSound,
-    );
+    await _playCountSound('count_rest.mp3', level, enableMotivationalSound);
   }
 
   Future<void> playCountStart(
     SavageLevel level,
     bool enableMotivationalSound,
   ) async {
-    await _playCountSound(
-      'count_start.mp3',
-      level,
-      enableMotivationalSound,
-    );
+    await _playCountSound('count_start.mp3', level, enableMotivationalSound);
   }
 
   Future<void> playCount30Seconds(

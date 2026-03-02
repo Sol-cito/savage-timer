@@ -54,6 +54,9 @@ class FakeAudioService implements AudioService {
     restVoiceCount++;
   }
 
+  /// Simulated voice duration in seconds for playRandomRestVoiceIfFits.
+  int fakeRestVoiceDuration = 3;
+
   /// Simulated voice duration in seconds for playRandomExerciseVoiceIfFits.
   int fakeExerciseVoiceDuration = 3;
 
@@ -82,6 +85,23 @@ class FakeAudioService implements AudioService {
   }
 
   @override
+  Future<bool> playRandomRestVoiceIfFits(
+    SavageLevel level,
+    int countdownThreshold,
+    int Function() getRemainingSeconds,
+  ) async {
+    final remaining = getRemainingSeconds();
+    final msUntilCountdown = (remaining - countdownThreshold) * 1000;
+    if (fakeRestVoiceDuration * 1000 > msUntilCountdown - 1000) {
+      return false;
+    }
+    calls.add('playRandomRestVoice');
+    lastRestVoiceLevel = level;
+    restVoiceCount++;
+    return true;
+  }
+
+  @override
   Future<void> playRandomStartVoice(SavageLevel level) async {
     calls.add('playRandomStartVoice');
     lastStartVoiceLevel = level;
@@ -99,32 +119,51 @@ class FakeAudioService implements AudioService {
   }
 
   @override
-  Future<void> playCount(int number, SavageLevel level, bool enableMotivationalSound) async {
+  Future<void> playCount(
+    int number,
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
     calls.add('playCount_$number');
   }
 
   @override
-  Future<void> playCountFinish(SavageLevel level, bool enableMotivationalSound) async {
+  Future<void> playCountFinish(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
     calls.add('playCountFinish');
   }
 
   @override
-  Future<void> playCountRest(SavageLevel level, bool enableMotivationalSound) async {
+  Future<void> playCountRest(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
     calls.add('playCountRest');
   }
 
   @override
-  Future<void> playCountStart(SavageLevel level, bool enableMotivationalSound) async {
+  Future<void> playCountStart(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
     calls.add('playCountStart');
   }
 
   @override
-  Future<void> playCount30Seconds(SavageLevel level, bool enableMotivationalSound) async {
+  Future<void> playCount30Seconds(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
     calls.add('playCount30Seconds');
   }
 
   @override
-  Future<void> play30SecBellThenCount(SavageLevel level, bool enableMotivationalSound) async {
+  Future<void> play30SecBellThenCount(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
     calls.add('play30SecBell');
     calls.add('playCount30Seconds');
   }
@@ -181,15 +220,29 @@ class FakeVibrationService implements VibrationService {
   final List<String> calls = [];
 
   @override
-  Future<void> roundStart() async { calls.add('roundStart'); }
+  Future<void> roundStart() async {
+    calls.add('roundStart');
+  }
+
   @override
-  Future<void> roundEnd() async { calls.add('roundEnd'); }
+  Future<void> roundEnd() async {
+    calls.add('roundEnd');
+  }
+
   @override
-  Future<void> lastSecondsAlert() async { calls.add('lastSecondsAlert'); }
+  Future<void> lastSecondsAlert() async {
+    calls.add('lastSecondsAlert');
+  }
+
   @override
-  Future<void> restEnd() async { calls.add('restEnd'); }
+  Future<void> restEnd() async {
+    calls.add('restEnd');
+  }
+
   @override
-  Future<void> sessionComplete() async { calls.add('sessionComplete'); }
+  Future<void> sessionComplete() async {
+    calls.add('sessionComplete');
+  }
 
   void clearCalls() => calls.clear();
 
@@ -378,6 +431,29 @@ void main() {
         // After bell delay, rest voice plays
         async.elapse(const Duration(seconds: 1));
         expect(fakeAudio.restVoiceCount, 1);
+
+        service.reset();
+      });
+    });
+
+    test('skips rest voice when it cannot finish before 3-2-1 countdown', () {
+      fakeAsync((async) {
+        fakeAudio.fakeRestVoiceDuration = 8;
+        final service = createService(
+          roundDuration: 10,
+          restDuration: 10,
+          totalRounds: 2,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 10)); // finish round
+        expect(service.state.phase, SessionPhase.rest);
+
+        fakeAudio.clearCounters();
+        async.elapse(const Duration(seconds: 3)); // rest voice decision point
+
+        // remaining ~= 7s, countdown starts at 3s => only ~4s available.
+        expect(fakeAudio.restVoiceCount, 0);
 
         service.reset();
       });
@@ -573,23 +649,26 @@ void main() {
       });
     }
 
-    test('does not schedule exercise voices when motivational sound is off', () {
-      fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          totalRounds: 1,
-          enableMotivationalSound: false,
-        );
+    test(
+      'does not schedule exercise voices when motivational sound is off',
+      () {
+        fakeAsync((async) {
+          final service = createService(
+            roundDuration: 60,
+            totalRounds: 1,
+            enableMotivationalSound: false,
+          );
 
-        service.start();
-        fakeAudio.clearCounters();
+          service.start();
+          fakeAudio.clearCounters();
 
-        async.elapse(const Duration(seconds: 60));
-        expect(fakeAudio.exerciseVoiceCount, 0);
+          async.elapse(const Duration(seconds: 60));
+          expect(fakeAudio.exerciseVoiceCount, 0);
 
-        service.reset();
-      });
-    });
+          service.reset();
+        });
+      },
+    );
 
     test('does not schedule exercise voices for very short rounds', () {
       fakeAsync((async) {
@@ -943,10 +1022,7 @@ void main() {
 
     test('30sec bell fires only once per round', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          totalRounds: 1,
-        );
+        final service = createService(roundDuration: 60, totalRounds: 1);
 
         service.start();
         fakeAudio.clearCounters();
@@ -1234,11 +1310,13 @@ void main() {
         totalRounds: 2,
       );
 
-      service.updateSettings(const TimerSettings(
-        roundDurationSeconds: 120,
-        restDurationSeconds: 30,
-        totalRounds: 5,
-      ));
+      service.updateSettings(
+        const TimerSettings(
+          roundDurationSeconds: 120,
+          restDurationSeconds: 30,
+          totalRounds: 5,
+        ),
+      );
 
       expect(service.state.roundDurationSeconds, 120);
       expect(service.state.restDurationSeconds, 30);
@@ -1257,9 +1335,7 @@ void main() {
         service.start();
         async.elapse(const Duration(seconds: 10));
 
-        service.updateSettings(const TimerSettings(
-          roundDurationSeconds: 120,
-        ));
+        service.updateSettings(const TimerSettings(roundDurationSeconds: 120));
 
         // State should still be running, not reset
         expect(service.state.state, SessionState.running);
@@ -1283,12 +1359,14 @@ void main() {
         async.elapse(const Duration(seconds: 10));
         fakeAudio.calls.clear();
 
-        service.updateSettings(const TimerSettings(
-          roundDurationSeconds: 60,
-          restDurationSeconds: 10,
-          totalRounds: 2,
-          volume: 0.5,
-        ));
+        service.updateSettings(
+          const TimerSettings(
+            roundDurationSeconds: 60,
+            restDurationSeconds: 10,
+            totalRounds: 2,
+            volume: 0.5,
+          ),
+        );
 
         // Timer should still be running
         expect(service.state.state, SessionState.running);
@@ -1315,9 +1393,7 @@ void main() {
         fakeAudio.calls.clear();
 
         // Update settings with same default volume (0.8)
-        service.updateSettings(const TimerSettings(
-          roundDurationSeconds: 120,
-        ));
+        service.updateSettings(const TimerSettings(roundDurationSeconds: 120));
 
         expect(fakeAudio.calls, isNot(contains('setVolume')));
 
@@ -1364,10 +1440,7 @@ void main() {
   group('TimerService countdown sounds', () {
     test('plays count_3, count_2, count_1 at remaining seconds 3, 2, 1', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 10,
-          totalRounds: 1,
-        );
+        final service = createService(roundDuration: 10, totalRounds: 1);
 
         service.start();
         fakeAudio.clearCounters();
@@ -1418,10 +1491,7 @@ void main() {
 
     test('plays countFinish when last round ends', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 5,
-          totalRounds: 1,
-        );
+        final service = createService(roundDuration: 5, totalRounds: 1);
 
         service.start();
         fakeAudio.clearCounters();
@@ -1684,8 +1754,10 @@ void main() {
         fakeVibration.clearCalls();
         service.start();
         async.elapse(const Duration(seconds: 20)); // round 1 ends
-        async.elapse(const Duration(seconds: 5));  // rest ends
-        async.elapse(const Duration(seconds: 20)); // round 2 ends (session complete)
+        async.elapse(const Duration(seconds: 5)); // rest ends
+        async.elapse(
+          const Duration(seconds: 20),
+        ); // round 2 ends (session complete)
         expect(fakeVibration.calls, isEmpty);
         service.reset();
       });
@@ -1750,10 +1822,7 @@ void main() {
 
     test('session completion calls stopKeepAlive', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 5,
-          totalRounds: 1,
-        );
+        final service = createService(roundDuration: 5, totalRounds: 1);
 
         service.start();
         fakeAudio.clearCounters();
@@ -1813,10 +1882,7 @@ void main() {
 
     test('skip during last round completes session', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          totalRounds: 1,
-        );
+        final service = createService(roundDuration: 60, totalRounds: 1);
 
         service.start();
         async.elapse(const Duration(seconds: 20));
@@ -1852,10 +1918,7 @@ void main() {
 
     test('skip does not call audioService.stop() to avoid race condition', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          totalRounds: 2,
-        );
+        final service = createService(roundDuration: 60, totalRounds: 2);
 
         service.start();
         async.elapse(const Duration(seconds: 10));
@@ -1890,10 +1953,7 @@ void main() {
 
     test('skip plays count_finish when skipping last round', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          totalRounds: 1,
-        );
+        final service = createService(roundDuration: 60, totalRounds: 1);
 
         service.start();
         async.elapse(const Duration(seconds: 10));
@@ -1949,10 +2009,7 @@ void main() {
 
     test('skip when idle is a no-op', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          totalRounds: 2,
-        );
+        final service = createService(roundDuration: 60, totalRounds: 2);
 
         final stateBefore = service.state;
         service.skip();
@@ -1963,10 +2020,7 @@ void main() {
 
     test('skip when completed is a no-op', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 5,
-          totalRounds: 1,
-        );
+        final service = createService(roundDuration: 5, totalRounds: 1);
 
         service.start();
         async.elapse(const Duration(seconds: 5));
@@ -2011,10 +2065,7 @@ void main() {
   group('Preparation countdown', () {
     test('start enters preparing state with 3-second countdown', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          preparationSeconds: 3,
-        );
+        final service = createService(roundDuration: 60, preparationSeconds: 3);
 
         service.start();
         expect(service.state.state, SessionState.preparing);
@@ -2031,10 +2082,7 @@ void main() {
 
     test('countdown ticks 3 -> 2 -> 1 -> running', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          preparationSeconds: 3,
-        );
+        final service = createService(roundDuration: 60, preparationSeconds: 3);
 
         service.start();
         expect(service.state.state, SessionState.preparing);
@@ -2058,10 +2106,7 @@ void main() {
 
     test('plays countdown audio at each tick', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          preparationSeconds: 3,
-        );
+        final service = createService(roundDuration: 60, preparationSeconds: 3);
 
         service.start();
         // playCount(3) on start
@@ -2083,10 +2128,7 @@ void main() {
 
     test('vibrates on transition to running', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          preparationSeconds: 3,
-        );
+        final service = createService(roundDuration: 60, preparationSeconds: 3);
 
         service.start();
         fakeVibration.clearCalls();
@@ -2100,10 +2142,7 @@ void main() {
 
     test('pause during preparation', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          preparationSeconds: 3,
-        );
+        final service = createService(roundDuration: 60, preparationSeconds: 3);
 
         service.start();
         async.elapse(const Duration(seconds: 1));
@@ -2123,10 +2162,7 @@ void main() {
 
     test('resume after pause during preparation', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          preparationSeconds: 3,
-        );
+        final service = createService(roundDuration: 60, preparationSeconds: 3);
 
         service.start();
         async.elapse(const Duration(seconds: 1));
@@ -2148,10 +2184,7 @@ void main() {
 
     test('skip during preparation goes to running', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          preparationSeconds: 3,
-        );
+        final service = createService(roundDuration: 60, preparationSeconds: 3);
 
         service.start();
         async.elapse(const Duration(seconds: 1));
@@ -2167,10 +2200,7 @@ void main() {
 
     test('reset during preparation', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          preparationSeconds: 3,
-        );
+        final service = createService(roundDuration: 60, preparationSeconds: 3);
 
         service.start();
         async.elapse(const Duration(seconds: 1));
@@ -2187,10 +2217,7 @@ void main() {
 
     test('preparationSeconds 0 skips preparation entirely', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          preparationSeconds: 0,
-        );
+        final service = createService(roundDuration: 60, preparationSeconds: 0);
 
         service.start();
         expect(service.state.state, SessionState.running);
@@ -2202,10 +2229,7 @@ void main() {
 
     test('double start during preparing is a no-op', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          preparationSeconds: 3,
-        );
+        final service = createService(roundDuration: 60, preparationSeconds: 3);
 
         service.start();
         expect(service.state.state, SessionState.preparing);
@@ -2244,10 +2268,7 @@ void main() {
 
     test('skip while paused during preparation goes to running', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          preparationSeconds: 3,
-        );
+        final service = createService(roundDuration: 60, preparationSeconds: 3);
 
         service.start();
         async.elapse(const Duration(seconds: 1));
@@ -2264,10 +2285,7 @@ void main() {
 
     test('reconcile during preparing is a no-op', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          preparationSeconds: 3,
-        );
+        final service = createService(roundDuration: 60, preparationSeconds: 3);
 
         service.start();
         expect(service.state.state, SessionState.preparing);
@@ -2284,10 +2302,7 @@ void main() {
 
     test('startKeepAlive is called when preparation begins', () {
       fakeAsync((async) {
-        final service = createService(
-          roundDuration: 60,
-          preparationSeconds: 3,
-        );
+        final service = createService(roundDuration: 60, preparationSeconds: 3);
 
         fakeAudio.calls.clear();
         service.start();
@@ -2344,40 +2359,49 @@ void main() {
         isNull,
       );
       expect(
-        const WorkoutSession(state: SessionState.running, remainingSeconds: 30)
-            .preparationCountdown,
+        const WorkoutSession(
+          state: SessionState.running,
+          remainingSeconds: 30,
+        ).preparationCountdown,
         isNull,
       );
       expect(
-        const WorkoutSession(state: SessionState.paused, remainingSeconds: 30)
-            .preparationCountdown,
+        const WorkoutSession(
+          state: SessionState.paused,
+          remainingSeconds: 30,
+        ).preparationCountdown,
         isNull,
       );
       expect(
-        const WorkoutSession(state: SessionState.completed).preparationCountdown,
+        const WorkoutSession(
+          state: SessionState.completed,
+        ).preparationCountdown,
         isNull,
       );
     });
   });
 
   group('30-second count voice', () {
-    test('plays count_30seconds immediately with bell when last seconds alert triggers', () {
-      fakeAsync((async) {
-        final service = createService(roundDuration: 60, totalRounds: 1);
+    test(
+      'plays count_30seconds immediately with bell when last seconds alert triggers',
+      () {
+        fakeAsync((async) {
+          final service = createService(roundDuration: 60, totalRounds: 1);
 
-        service.start();
-        fakeAudio.calls.clear();
+          service.start();
+          fakeAudio.calls.clear();
 
-        // Advance to the point where remainingSeconds == 30
-        async.elapse(const Duration(seconds: 30));
-        // Both should play on the same tick — bell on _warningPlayer,
-        // count_30seconds on _countPlayer (no delay needed).
-        expect(fakeAudio.calls, contains('play30SecBell'));
-        expect(fakeAudio.calls, contains('playCount30Seconds'));
+          // Advance to the point where remainingSeconds == 30
+          async.elapse(const Duration(seconds: 30));
+          // Both should play on the same tick — bell on _warningPlayer,
+          // count_30seconds on _countPlayer (no delay needed).
+          expect(fakeAudio.calls, contains('play30SecBell'));
+          expect(fakeAudio.calls, contains('playCount30Seconds'));
 
-        service.reset();
-      });
-    });
+          service.reset();
+        });
+      },
+    );
 
     test('stops voice player when 30sec bell triggers to prevent overlap', () {
       fakeAsync((async) {
@@ -2460,6 +2484,5 @@ void main() {
         service.reset();
       });
     });
-
   });
 }

@@ -122,10 +122,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
   void _startPrepTimer() {
     _prepTimer?.cancel();
-    _prepTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => _prepTick(),
-    );
+    _prepTimer = Timer.periodic(const Duration(seconds: 1), (_) => _prepTick());
   }
 
   void _prepTick() {
@@ -207,8 +204,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     }
 
     // During preparation, skip straight to running
-    if (state.state == SessionState.preparing ||
-        _pausedDuringPreparation) {
+    if (state.state == SessionState.preparing || _pausedDuringPreparation) {
       _prepTimer?.cancel();
       _pausedDuringPreparation = false;
 
@@ -404,7 +400,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
       _cancelExerciseVoiceTimers();
       _startVoiceTimer?.cancel();
       _lastSecondsVoiceTimer?.cancel();
-  
+
       if (_settings.enableVibration) _vibrationService.roundEnd();
 
       if (state.isLastRound) {
@@ -441,7 +437,11 @@ class TimerService extends StateNotifier<WorkoutSession> {
             () {
               if (state.phase == SessionPhase.rest &&
                   state.state == SessionState.running) {
-                _audioService.playRandomRestVoice(_settings.savageLevel);
+                _audioService.playRandomRestVoiceIfFits(
+                  _settings.savageLevel,
+                  _bellDurationSeconds, // countdown starts at 3,2,1
+                  () => state.remainingSeconds,
+                );
               }
             },
           );
@@ -473,22 +473,19 @@ class TimerService extends StateNotifier<WorkoutSession> {
     if (!_settings.enableMotivationalSound) return;
 
     _startVoiceTimer?.cancel();
-    _startVoiceTimer = Timer(
-      const Duration(seconds: _bellDurationSeconds),
-      () {
-        if (state.state != SessionState.running ||
-            state.phase != SessionPhase.round) {
-          return;
-        }
-        // Skip if the voice would be cut off by the last-seconds bell.
-        if (_settings.enableLastSecondsAlert &&
-            state.remainingSeconds - _settings.lastSecondsThreshold <
-                _voiceBufferSeconds) {
-          return;
-        }
-        _audioService.playRandomStartVoice(_settings.savageLevel);
-      },
-    );
+    _startVoiceTimer = Timer(const Duration(seconds: _bellDurationSeconds), () {
+      if (state.state != SessionState.running ||
+          state.phase != SessionPhase.round) {
+        return;
+      }
+      // Skip if the voice would be cut off by the last-seconds bell.
+      if (_settings.enableLastSecondsAlert &&
+          state.remainingSeconds - _settings.lastSecondsThreshold <
+              _voiceBufferSeconds) {
+        return;
+      }
+      _audioService.playRandomStartVoice(_settings.savageLevel);
+    });
   }
 
   /// Schedules 2–4 exercise voice clips at random times during the current
@@ -504,9 +501,10 @@ class TimerService extends StateNotifier<WorkoutSession> {
     final minStartDelay = _bellDurationSeconds + _voiceBufferSeconds;
     // Stop scheduling voices early enough so the last clip finishes before the
     // 30-second bell (or round end). The voice buffer accounts for clip length.
-    final endBuffer = _settings.enableLastSecondsAlert
-        ? _settings.lastSecondsThreshold + _voiceBufferSeconds
-        : _voiceBufferSeconds;
+    final endBuffer =
+        _settings.enableLastSecondsAlert
+            ? _settings.lastSecondsThreshold + _voiceBufferSeconds
+            : _voiceBufferSeconds;
     final maxPlayTime = roundDuration - endBuffer;
 
     if (maxPlayTime <= minStartDelay) return; // round too short
