@@ -102,6 +102,25 @@ class AudioService {
     }
   }
 
+  /// Plays 30sec_bell.mp3, waits for it to finish, then immediately plays
+  /// the level-specific count_30seconds.mp3 with no gap.
+  Future<void> play30SecBellThenCount(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
+    try {
+      await _warningPlayer.stop();
+      await _warningPlayer.setSource(AssetSource('sounds/30sec_bell.mp3'));
+      await _warningPlayer.resume();
+      // Wait for the bell to finish playing
+      await _warningPlayer.onPlayerComplete.first;
+    } catch (e) {
+      // Bell failed, continue to count anyway
+    }
+    // Play count_30seconds immediately after bell finishes
+    await playCount30Seconds(level, enableMotivationalSound);
+  }
+
   Future<void> speakQuote(String quote) async {
     final now = DateTime.now();
     if (_lastQuoteTime != null &&

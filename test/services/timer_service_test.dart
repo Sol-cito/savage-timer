@@ -104,6 +104,12 @@ class FakeAudioService implements AudioService {
   }
 
   @override
+  Future<void> play30SecBellThenCount(SavageLevel level, bool enableMotivationalSound) async {
+    calls.add('play30SecBell');
+    calls.add('playCount30Seconds');
+  }
+
+  @override
   Future<void> startKeepAlive() async {
     calls.add('startKeepAlive');
   }

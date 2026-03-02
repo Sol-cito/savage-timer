@@ -378,14 +378,11 @@ class TimerService extends StateNotifier<WorkoutSession> {
     }
   }
 
-  /// Plays the 30-second bell and count_30seconds voice together.
-  /// Awaits stopVoice and play30SecBell so the warning player is fully
-  /// loaded before the count player starts — prevents a race where the
-  /// platform audio session drops the bell.
+  /// Stops any exercise voice then plays 30sec bell followed immediately
+  /// by the level-specific count_30seconds announcement.
   Future<void> _playLastSecondsAlert() async {
     await _audioService.stopVoice();
-    await _audioService.play30SecBell();
-    _audioService.playCount30Seconds(
+    _audioService.play30SecBellThenCount(
       _settings.savageLevel,
       _settings.enableMotivationalSound,
     );
