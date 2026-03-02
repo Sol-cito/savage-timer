@@ -101,18 +101,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
         _settings.enableMotivationalSound,
       );
       if (_settings.enableVibration) _vibrationService.roundStart();
-      if (_settings.enableMotivationalSound) {
-        _startVoiceTimer?.cancel();
-        _startVoiceTimer = Timer(
-          const Duration(seconds: _bellDurationSeconds),
-          () {
-            if (state.state == SessionState.running &&
-                state.phase == SessionPhase.round) {
-              _audioService.playRandomStartVoice(_settings.savageLevel);
-            }
-          },
-        );
-      }
+      _scheduleStartVoice();
       _scheduleExerciseVoices();
       return;
     }
@@ -158,20 +147,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
       );
       _startTimer();
 
-      // Schedule start voice after count_start finishes
-      if (_settings.enableMotivationalSound) {
-        _startVoiceTimer?.cancel();
-        _startVoiceTimer = Timer(
-          const Duration(seconds: _bellDurationSeconds),
-          () {
-            if (state.state == SessionState.running &&
-                state.phase == SessionPhase.round) {
-              _audioService.playRandomStartVoice(_settings.savageLevel);
-            }
-          },
-        );
-      }
-
+      _scheduleStartVoice();
       _scheduleExerciseVoices();
     } else {
       _audioService.playCount(
@@ -248,18 +224,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
       if (_settings.enableVibration) _vibrationService.roundStart();
       _startTimer();
 
-      if (_settings.enableMotivationalSound) {
-        _startVoiceTimer?.cancel();
-        _startVoiceTimer = Timer(
-          const Duration(seconds: _bellDurationSeconds),
-          () {
-            if (state.state == SessionState.running &&
-                state.phase == SessionPhase.round) {
-              _audioService.playRandomStartVoice(_settings.savageLevel);
-            }
-          },
-        );
-      }
+      _scheduleStartVoice();
       _scheduleExerciseVoices();
       return;
     }
@@ -454,22 +419,33 @@ class TimerService extends StateNotifier<WorkoutSession> {
       );
       _recordPhaseStart();
 
-      // Schedule start voice after count_start finishes
-      if (_settings.enableMotivationalSound) {
-        _startVoiceTimer?.cancel();
-        _startVoiceTimer = Timer(
-          const Duration(seconds: _bellDurationSeconds),
-          () {
-            if (state.state == SessionState.running &&
-                state.phase == SessionPhase.round) {
-              _audioService.playRandomStartVoice(_settings.savageLevel);
-            }
-          },
-        );
-      }
-
+      _scheduleStartVoice();
       _scheduleExerciseVoices();
     }
+  }
+
+  /// Schedules the start-of-round motivational voice after the bell finishes,
+  /// but only if there is enough time before the 30-second alert.
+  void _scheduleStartVoice() {
+    if (!_settings.enableMotivationalSound) return;
+
+    _startVoiceTimer?.cancel();
+    _startVoiceTimer = Timer(
+      const Duration(seconds: _bellDurationSeconds),
+      () {
+        if (state.state != SessionState.running ||
+            state.phase != SessionPhase.round) {
+          return;
+        }
+        // Skip if the voice would be cut off by the last-seconds bell.
+        if (_settings.enableLastSecondsAlert &&
+            state.remainingSeconds - _settings.lastSecondsThreshold <
+                _voiceBufferSeconds) {
+          return;
+        }
+        _audioService.playRandomStartVoice(_settings.savageLevel);
+      },
+    );
   }
 
   /// Schedules 2–4 exercise voice clips at random times during the current
