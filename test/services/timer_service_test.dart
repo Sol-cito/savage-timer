@@ -99,6 +99,11 @@ class FakeAudioService implements AudioService {
   }
 
   @override
+  Future<void> playCount30Seconds(SavageLevel level, bool enableMotivationalSound) async {
+    calls.add('playCount30Seconds');
+  }
+
+  @override
   Future<void> startKeepAlive() async {
     calls.add('startKeepAlive');
   }
@@ -2307,6 +2312,98 @@ void main() {
         const WorkoutSession(state: SessionState.completed).preparationCountdown,
         isNull,
       );
+    });
+  });
+
+  group('30-second count voice', () {
+    test('plays count_30seconds after bell delay when last seconds alert triggers', () {
+      fakeAsync((async) {
+        final service = createService(roundDuration: 60, totalRounds: 1);
+
+        service.start();
+        fakeAudio.calls.clear();
+
+        // Advance to the point where remainingSeconds == 30
+        async.elapse(const Duration(seconds: 30));
+        expect(fakeAudio.calls, contains('play30SecBell'));
+        expect(fakeAudio.calls, isNot(contains('playCount30Seconds')));
+
+        // After bell delay (3s), count_30seconds should play
+        async.elapse(const Duration(seconds: 3));
+        expect(fakeAudio.calls, contains('playCount30Seconds'));
+
+        service.reset();
+      });
+    });
+
+    test('does not play count_30seconds if paused before delay elapses', () {
+      fakeAsync((async) {
+        final service = createService(roundDuration: 60, totalRounds: 1);
+
+        service.start();
+        fakeAudio.calls.clear();
+
+        // Trigger 30-sec bell
+        async.elapse(const Duration(seconds: 30));
+        expect(fakeAudio.calls, contains('play30SecBell'));
+
+        // Pause before the delayed voice plays
+        async.elapse(const Duration(seconds: 1));
+        service.pause();
+        fakeAudio.calls.clear();
+
+        // Wait past the original delay
+        async.elapse(const Duration(seconds: 5));
+        expect(fakeAudio.calls, isNot(contains('playCount30Seconds')));
+
+        service.reset();
+      });
+    });
+
+    test('does not play count_30seconds if skipped before delay', () {
+      fakeAsync((async) {
+        final service = createService(roundDuration: 60, totalRounds: 2);
+
+        service.start();
+        fakeAudio.calls.clear();
+
+        // Trigger 30-sec bell
+        async.elapse(const Duration(seconds: 30));
+        expect(fakeAudio.calls, contains('play30SecBell'));
+
+        // Skip phase before voice plays
+        async.elapse(const Duration(seconds: 1));
+        service.skip();
+        fakeAudio.calls.clear();
+
+        // Wait past the original delay
+        async.elapse(const Duration(seconds: 5));
+        expect(fakeAudio.calls, isNot(contains('playCount30Seconds')));
+
+        service.reset();
+      });
+    });
+
+    test('does not play count_30seconds if reset before delay', () {
+      fakeAsync((async) {
+        final service = createService(roundDuration: 60, totalRounds: 1);
+
+        service.start();
+        fakeAudio.calls.clear();
+
+        // Trigger 30-sec bell
+        async.elapse(const Duration(seconds: 30));
+        expect(fakeAudio.calls, contains('play30SecBell'));
+
+        // Reset before voice plays
+        async.elapse(const Duration(seconds: 1));
+        service.reset();
+        fakeAudio.calls.clear();
+
+        // Wait past the original delay
+        async.elapse(const Duration(seconds: 5));
+        expect(fakeAudio.calls, isNot(contains('playCount30Seconds')));
+      });
     });
   });
 }

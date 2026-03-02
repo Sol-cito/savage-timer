@@ -14,6 +14,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
   Timer? _prepTimer;
   Timer? _startVoiceTimer;
   Timer? _restVoiceTimer;
+  Timer? _count30SecTimer;
   final List<Timer> _exerciseVoiceTimers = [];
   final AudioService _audioService;
   final VibrationService _vibrationService;
@@ -191,6 +192,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _timer?.cancel();
     _startVoiceTimer?.cancel();
     _restVoiceTimer?.cancel();
+    _count30SecTimer?.cancel();
     _cancelExerciseVoiceTimers();
     _audioService.stop();
     _audioService.stopKeepAlive();
@@ -261,6 +263,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _timer?.cancel();
     _startVoiceTimer?.cancel();
     _restVoiceTimer?.cancel();
+    _count30SecTimer?.cancel();
     _cancelExerciseVoiceTimers();
 
     if (state.state == SessionState.paused) {
@@ -280,6 +283,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _prepTimer?.cancel();
     _startVoiceTimer?.cancel();
     _restVoiceTimer?.cancel();
+    _count30SecTimer?.cancel();
     _cancelExerciseVoiceTimers();
     _pausedDuringPreparation = false;
     _audioService.stop();
@@ -351,6 +355,21 @@ class TimerService extends StateNotifier<WorkoutSession> {
       _lastSecondsAlertTriggered = true;
       _audioService.play30SecBell();
       if (_settings.enableVibration) _vibrationService.lastSecondsAlert();
+
+      // Schedule count_30seconds voice after bell finishes
+      _count30SecTimer?.cancel();
+      _count30SecTimer = Timer(
+        const Duration(seconds: _bellDurationSeconds),
+        () {
+          if (state.state == SessionState.running &&
+              state.phase == SessionPhase.round) {
+            _audioService.playCount30Seconds(
+              _settings.savageLevel,
+              _settings.enableMotivationalSound,
+            );
+          }
+        },
+      );
     }
 
     // Countdown sounds at 3, 2, 1
@@ -374,6 +393,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
       // Round ended — cancel any remaining voice timers
       _cancelExerciseVoiceTimers();
       _startVoiceTimer?.cancel();
+      _count30SecTimer?.cancel();
       if (_settings.enableVibration) _vibrationService.roundEnd();
 
       if (state.isLastRound) {
@@ -514,6 +534,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _prepTimer?.cancel();
     _startVoiceTimer?.cancel();
     _restVoiceTimer?.cancel();
+    _count30SecTimer?.cancel();
     _cancelExerciseVoiceTimers();
     super.dispose();
   }

@@ -248,6 +248,17 @@ class AudioService {
     );
   }
 
+  Future<void> playCount30Seconds(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
+    await _playCountSound(
+      'count_30seconds.mp3',
+      level,
+      enableMotivationalSound,
+    );
+  }
+
   /// Updates the volume for all audio players and TTS.
   Future<void> setVolume(double volume) async {
     final clamped = volume.clamp(0.0, 1.0);
