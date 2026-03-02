@@ -14,7 +14,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
   Timer? _prepTimer;
   Timer? _startVoiceTimer;
   Timer? _restVoiceTimer;
-  Timer? _count30SecTimer;
+
   final List<Timer> _exerciseVoiceTimers = [];
   final AudioService _audioService;
   final VibrationService _vibrationService;
@@ -192,7 +192,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _timer?.cancel();
     _startVoiceTimer?.cancel();
     _restVoiceTimer?.cancel();
-    _count30SecTimer?.cancel();
+
     _cancelExerciseVoiceTimers();
     _audioService.stop();
     _audioService.stopKeepAlive();
@@ -263,7 +263,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _timer?.cancel();
     _startVoiceTimer?.cancel();
     _restVoiceTimer?.cancel();
-    _count30SecTimer?.cancel();
+
     _cancelExerciseVoiceTimers();
 
     if (state.state == SessionState.paused) {
@@ -283,7 +283,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _prepTimer?.cancel();
     _startVoiceTimer?.cancel();
     _restVoiceTimer?.cancel();
-    _count30SecTimer?.cancel();
+
     _cancelExerciseVoiceTimers();
     _pausedDuringPreparation = false;
     _audioService.stop();
@@ -356,24 +356,14 @@ class TimerService extends StateNotifier<WorkoutSession> {
       _audioService.play30SecBell();
       if (_settings.enableVibration) _vibrationService.lastSecondsAlert();
 
-      // Stop any exercise voice that may be playing so it doesn't
-      // overlap with the upcoming count_30seconds announcement.
+      // Stop any exercise voice so it doesn't talk over the announcement.
       _audioService.stopVoice();
 
-      // Play count_30seconds 1 second after bell — the bell's audible
-      // ring lasts ~1s even though the file is longer.
-      _count30SecTimer?.cancel();
-      _count30SecTimer = Timer(
-        const Duration(seconds: 1),
-        () {
-          if (state.state == SessionState.running &&
-              state.phase == SessionPhase.round) {
-            _audioService.playCount30Seconds(
-              _settings.savageLevel,
-              _settings.enableMotivationalSound,
-            );
-          }
-        },
+      // Play count_30seconds immediately — it uses _countPlayer which is
+      // separate from _warningPlayer (bell), so they overlap naturally.
+      _audioService.playCount30Seconds(
+        _settings.savageLevel,
+        _settings.enableMotivationalSound,
       );
     }
 
@@ -398,7 +388,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
       // Round ended — cancel any remaining voice timers
       _cancelExerciseVoiceTimers();
       _startVoiceTimer?.cancel();
-      _count30SecTimer?.cancel();
+  
       if (_settings.enableVibration) _vibrationService.roundEnd();
 
       if (state.isLastRound) {
@@ -539,7 +529,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _prepTimer?.cancel();
     _startVoiceTimer?.cancel();
     _restVoiceTimer?.cancel();
-    _count30SecTimer?.cancel();
+
     _cancelExerciseVoiceTimers();
     super.dispose();
   }
