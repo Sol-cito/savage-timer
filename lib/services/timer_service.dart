@@ -86,6 +86,10 @@ class TimerService extends StateNotifier<WorkoutSession> {
       _resetState();
     }
 
+    // Stop any audio that may still be playing (e.g. example voice from
+    // settings) so it doesn't overlap with the countdown.
+    _audioService.stopVoice();
+
     _audioService.startKeepAlive();
 
     if (_preparationSeconds <= 0) {
