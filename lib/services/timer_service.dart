@@ -353,18 +353,13 @@ class TimerService extends StateNotifier<WorkoutSession> {
         state.phase == SessionPhase.round &&
         newRemaining == _settings.lastSecondsThreshold) {
       _lastSecondsAlertTriggered = true;
-      _audioService.play30SecBell();
       if (_settings.enableVibration) _vibrationService.lastSecondsAlert();
 
-      // Stop any exercise voice so it doesn't talk over the announcement.
-      _audioService.stopVoice();
-
-      // Play count_30seconds immediately — it uses _countPlayer which is
-      // separate from _warningPlayer (bell), so they overlap naturally.
-      _audioService.playCount30Seconds(
-        _settings.savageLevel,
-        _settings.enableMotivationalSound,
-      );
+      // Stop any exercise voice so it doesn't talk over the announcement,
+      // then play bell and count_30seconds together. We await stopVoice
+      // and play30SecBell before starting count_30seconds so the warning
+      // player has its source loaded before the count player begins.
+      _playLastSecondsAlert();
     }
 
     // Countdown sounds at 3, 2, 1
@@ -381,6 +376,19 @@ class TimerService extends StateNotifier<WorkoutSession> {
     } else {
       state = state.copyWith(remainingSeconds: newRemaining);
     }
+  }
+
+  /// Plays the 30-second bell and count_30seconds voice together.
+  /// Awaits stopVoice and play30SecBell so the warning player is fully
+  /// loaded before the count player starts — prevents a race where the
+  /// platform audio session drops the bell.
+  Future<void> _playLastSecondsAlert() async {
+    await _audioService.stopVoice();
+    await _audioService.play30SecBell();
+    _audioService.playCount30Seconds(
+      _settings.savageLevel,
+      _settings.enableMotivationalSound,
+    );
   }
 
   void _handlePhaseEnd() {
