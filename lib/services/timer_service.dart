@@ -522,7 +522,18 @@ class TimerService extends StateNotifier<WorkoutSession> {
         Timer(Duration(seconds: playTime), () {
           if (state.phase == SessionPhase.round &&
               state.state == SessionState.running) {
-            _audioService.playRandomExerciseVoice(_settings.savageLevel);
+            if (_settings.enableLastSecondsAlert) {
+              // Check actual clip duration before playing — skip if it
+              // would be interrupted by the 30-second bell.
+              final secsUntilBell =
+                  state.remainingSeconds - _settings.lastSecondsThreshold;
+              _audioService.playRandomExerciseVoiceIfFits(
+                _settings.savageLevel,
+                secsUntilBell,
+              );
+            } else {
+              _audioService.playRandomExerciseVoice(_settings.savageLevel);
+            }
           }
         }),
       );

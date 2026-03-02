@@ -54,11 +54,28 @@ class FakeAudioService implements AudioService {
     restVoiceCount++;
   }
 
+  /// Simulated voice duration in seconds for playRandomExerciseVoiceIfFits.
+  int fakeExerciseVoiceDuration = 3;
+
   @override
   Future<void> playRandomExerciseVoice(SavageLevel level) async {
     calls.add('playRandomExerciseVoice');
     lastExerciseVoiceLevel = level;
     exerciseVoiceCount++;
+  }
+
+  @override
+  Future<bool> playRandomExerciseVoiceIfFits(
+    SavageLevel level,
+    int maxSeconds,
+  ) async {
+    if (fakeExerciseVoiceDuration > maxSeconds) {
+      return false;
+    }
+    calls.add('playRandomExerciseVoice');
+    lastExerciseVoiceLevel = level;
+    exerciseVoiceCount++;
+    return true;
   }
 
   @override
@@ -2364,6 +2381,43 @@ void main() {
         async.elapse(const Duration(seconds: 30));
         expect(fakeAudio.calls, contains('play30SecBell'));
         expect(fakeAudio.calls, contains('stopVoice'));
+
+        service.reset();
+      });
+    });
+
+    test('skips exercise voice when its duration exceeds time until bell', () {
+      fakeAsync((async) {
+        final seeded = SeededRandom([0, 0, 0, 0, 0]);
+        // 90s round with 30s alert → exercise window ends at 90-30-8=52s
+        // Voices scheduled within 11s..52s window
+        final service = createService(
+          roundDuration: 90,
+          totalRounds: 1,
+          enableLastSecondsAlert: true,
+          lastSecondsThreshold: 30,
+          enableMotivationalSound: true,
+          random: seeded,
+        );
+
+        // Set fake voice duration to be very long (15s) so some voices
+        // near the boundary will be too long to fit before the bell.
+        fakeAudio.fakeExerciseVoiceDuration = 15;
+
+        service.start();
+
+        // Advance partway — voices that have enough room should play
+        async.elapse(const Duration(seconds: 40));
+        final countBefore = fakeAudio.exerciseVoiceCount;
+
+        // Now set voice duration so long it can never fit
+        fakeAudio.fakeExerciseVoiceDuration = 999;
+        fakeAudio.exerciseVoiceCount = 0;
+
+        // Advance through the rest — no voices should play since they
+        // won't fit before the 30s bell
+        async.elapse(const Duration(seconds: 50));
+        expect(fakeAudio.exerciseVoiceCount, 0);
 
         service.reset();
       });

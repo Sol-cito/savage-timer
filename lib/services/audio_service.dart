@@ -195,6 +195,47 @@ class AudioService {
     await _playRandomAsset(level, 'exercise');
   }
 
+  /// Picks a random exercise voice and only plays it if its duration fits
+  /// within [maxSeconds]. Returns true if a voice was played.
+  Future<bool> playRandomExerciseVoiceIfFits(
+    SavageLevel level,
+    int maxSeconds,
+  ) async {
+    final levelFolder = _getLevelFolder(level);
+    final prefix = 'assets/sounds/$levelFolder/exercise/';
+
+    try {
+      final manifestJson = await rootBundle.loadString('AssetManifest.json');
+      final manifest = json.decode(manifestJson) as Map<String, dynamic>;
+
+      final files = manifest.keys
+          .where((key) =>
+              key.startsWith(prefix) &&
+              key.endsWith('.mp3') &&
+              !key.contains('_full'))
+          .toList();
+
+      if (files.isEmpty) return false;
+
+      final selected = files[Random().nextInt(files.length)];
+      final relativePath = selected.replaceFirst('assets/', '');
+
+      await _voicePlayer.stop();
+      await _voicePlayer.setSource(AssetSource(relativePath));
+
+      final duration = await _voicePlayer.getDuration();
+      if (duration == null ||
+          duration.inSeconds > maxSeconds) {
+        return false;
+      }
+
+      await _voicePlayer.resume();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<void> playRandomStartVoice(SavageLevel level) async {
     await _playRandomAsset(level, 'start');
   }
