@@ -523,13 +523,13 @@ class TimerService extends StateNotifier<WorkoutSession> {
           if (state.phase == SessionPhase.round &&
               state.state == SessionState.running) {
             if (_settings.enableLastSecondsAlert) {
-              // Check actual clip duration before playing — skip if it
-              // would be interrupted by the 30-second bell.
-              final secsUntilBell =
-                  state.remainingSeconds - _settings.lastSecondsThreshold;
+              // Pass a callback so the audio service can re-check the
+              // remaining time right before playback, after async asset
+              // loading which may take several seconds.
               _audioService.playRandomExerciseVoiceIfFits(
                 _settings.savageLevel,
-                secsUntilBell,
+                _settings.lastSecondsThreshold,
+                () => state.remainingSeconds,
               );
             } else {
               _audioService.playRandomExerciseVoice(_settings.savageLevel);

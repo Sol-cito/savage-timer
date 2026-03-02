@@ -67,9 +67,12 @@ class FakeAudioService implements AudioService {
   @override
   Future<bool> playRandomExerciseVoiceIfFits(
     SavageLevel level,
-    int maxSeconds,
+    int bellThreshold,
+    int Function() getRemainingSeconds,
   ) async {
-    if (fakeExerciseVoiceDuration > maxSeconds) {
+    final remaining = getRemainingSeconds();
+    final msUntilBell = (remaining - bellThreshold) * 1000;
+    if (fakeExerciseVoiceDuration * 1000 > msUntilBell - 1000) {
       return false;
     }
     calls.add('playRandomExerciseVoice');
@@ -2408,7 +2411,6 @@ void main() {
 
         // Advance partway — voices that have enough room should play
         async.elapse(const Duration(seconds: 40));
-        final countBefore = fakeAudio.exerciseVoiceCount;
 
         // Now set voice duration so long it can never fit
         fakeAudio.fakeExerciseVoiceDuration = 999;

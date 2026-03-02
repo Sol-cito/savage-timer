@@ -196,10 +196,14 @@ class AudioService {
   }
 
   /// Picks a random exercise voice and only plays it if its duration fits
-  /// within [maxSeconds]. Returns true if a voice was played.
+  /// before the 30-second bell. [bellThreshold] is the last-seconds threshold
+  /// (e.g. 30). [getRemainingSeconds] returns the **current** remaining seconds
+  /// at the moment it is called — this is critical because async asset loading
+  /// can take several seconds, so we must re-check right before playback.
   Future<bool> playRandomExerciseVoiceIfFits(
     SavageLevel level,
-    int maxSeconds,
+    int bellThreshold,
+    int Function() getRemainingSeconds,
   ) async {
     final levelFolder = _getLevelFolder(level);
     final prefix = 'assets/sounds/$levelFolder/exercise/';
@@ -237,10 +241,13 @@ class AudioService {
         }
       }
 
-      // Use milliseconds to avoid truncation (e.g. 7.8s → 7s with inSeconds).
+      // Re-check timing RIGHT before playing. Async work above may have
+      // consumed several seconds, so the original estimate is stale.
+      final currentRemaining = getRemainingSeconds();
+      final msUntilBell = (currentRemaining - bellThreshold) * 1000;
+
       // Add 1-second safety margin for timer tick jitter.
-      final maxMs = maxSeconds * 1000 - 1000;
-      if (duration.inMilliseconds > maxMs) {
+      if (duration.inMilliseconds > msUntilBell - 1000) {
         return false;
       }
 
