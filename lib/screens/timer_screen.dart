@@ -130,7 +130,7 @@ class TimerScreen extends ConsumerWidget {
                 ],
                 const Spacer(),
                 // Control buttons
-                _buildControls(session, timerService, s),
+                _buildControls(context, session, timerService, s),
               ],
             ),
           ),
@@ -140,6 +140,7 @@ class TimerScreen extends ConsumerWidget {
   }
 
   Widget _buildControls(
+    BuildContext context,
     WorkoutSession session,
     TimerService timerService,
     double s,
@@ -162,7 +163,13 @@ class TimerScreen extends ConsumerWidget {
           icon: Icons.refresh,
           onPressed:
               (isRunning || isPaused || isCompleted)
-                  ? () => timerService.reset()
+                  ? () {
+                      if (isRunning || isPaused) {
+                        _showResetConfirmDialog(context, timerService);
+                      } else {
+                        timerService.reset();
+                      }
+                    }
                   : null,
           backgroundColor: Colors.white.withValues(alpha: 0.2),
           iconColor: Colors.white,
@@ -197,6 +204,34 @@ class TimerScreen extends ConsumerWidget {
           label: 'Skip',
         ),
       ],
+    );
+  }
+
+  void _showResetConfirmDialog(
+    BuildContext context,
+    TimerService timerService,
+  ) {
+    showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Timer'),
+        content: const Text(
+          'Are you sure you want to reset? Current progress will be lost.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              timerService.reset();
+            },
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
     );
   }
 
