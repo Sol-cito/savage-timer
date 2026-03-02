@@ -356,10 +356,15 @@ class TimerService extends StateNotifier<WorkoutSession> {
       _audioService.play30SecBell();
       if (_settings.enableVibration) _vibrationService.lastSecondsAlert();
 
-      // Schedule count_30seconds voice after bell finishes
+      // Stop any exercise voice that may be playing so it doesn't
+      // overlap with the upcoming count_30seconds announcement.
+      _audioService.stopVoice();
+
+      // Play count_30seconds 1 second after bell — the bell's audible
+      // ring lasts ~1s even though the file is longer.
       _count30SecTimer?.cancel();
       _count30SecTimer = Timer(
-        const Duration(seconds: _bellDurationSeconds),
+        const Duration(seconds: 1),
         () {
           if (state.state == SessionState.running &&
               state.phase == SessionPhase.round) {

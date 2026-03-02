@@ -114,6 +114,11 @@ class FakeAudioService implements AudioService {
   }
 
   @override
+  Future<void> stopVoice() async {
+    calls.add('stopVoice');
+  }
+
+  @override
   Future<void> stop() async {
     calls.add('stop');
   }
@@ -2316,7 +2321,7 @@ void main() {
   });
 
   group('30-second count voice', () {
-    test('plays count_30seconds after bell delay when last seconds alert triggers', () {
+    test('plays count_30seconds 1 second after bell when last seconds alert triggers', () {
       fakeAsync((async) {
         final service = createService(roundDuration: 60, totalRounds: 1);
 
@@ -2328,9 +2333,25 @@ void main() {
         expect(fakeAudio.calls, contains('play30SecBell'));
         expect(fakeAudio.calls, isNot(contains('playCount30Seconds')));
 
-        // After bell delay (3s), count_30seconds should play
-        async.elapse(const Duration(seconds: 3));
+        // After 1s delay, count_30seconds should play
+        async.elapse(const Duration(seconds: 1));
         expect(fakeAudio.calls, contains('playCount30Seconds'));
+
+        service.reset();
+      });
+    });
+
+    test('stops voice player when 30sec bell triggers to prevent overlap', () {
+      fakeAsync((async) {
+        final service = createService(roundDuration: 60, totalRounds: 1);
+
+        service.start();
+        fakeAudio.calls.clear();
+
+        // Advance to the point where remainingSeconds == 30
+        async.elapse(const Duration(seconds: 30));
+        expect(fakeAudio.calls, contains('play30SecBell'));
+        expect(fakeAudio.calls, contains('stopVoice'));
 
         service.reset();
       });

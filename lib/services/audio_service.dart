@@ -269,6 +269,12 @@ class AudioService {
     await _tts.setVolume(clamped);
   }
 
+  /// Stops only the voice player (used to cut exercise voices before
+  /// a higher-priority announcement like count_30seconds).
+  Future<void> stopVoice() async {
+    await _voicePlayer.stop();
+  }
+
   void resetQuoteCooldown() {
     _lastQuoteTime = null;
   }
