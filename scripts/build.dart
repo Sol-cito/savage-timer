@@ -7,14 +7,12 @@ import 'dart:io';
 ///   dart run scripts/build.dart               # Build both Android AAB and iOS
 ///   dart run scripts/build.dart --android-only # Build Android AAB only
 ///   dart run scripts/build.dart --ios-only     # Build iOS only
-///   dart run scripts/build.dart --no-increment # Skip build number increment
 ///
 ///
 ///   For shorebird patch, " shorebird patch android / shorebird patch ios "
 void main(List<String> args) async {
   final androidOnly = args.contains('--android-only');
   final iosOnly = args.contains('--ios-only');
-  final noIncrement = args.contains('--no-increment');
 
   final buildAndroid = !iosOnly;
   final buildIos = !androidOnly;
@@ -46,27 +44,18 @@ void main(List<String> args) async {
   }
 
   final versionName = parts[0];
-  var buildNumber = int.tryParse(parts[1]);
+  final buildNumber = int.tryParse(parts[1]);
   if (buildNumber == null) {
     stderr.writeln('Error: Build number is not a valid integer: ${parts[1]}');
     exit(1);
   }
 
-  // 2. Increment build number
-  if (!noIncrement) {
-    buildNumber++;
-    final newVersion = '$versionName+$buildNumber';
-    pubspecContent = pubspecContent.replaceFirst(
-      'version: $fullVersion',
-      'version: $newVersion',
-    );
-    pubspecFile.writeAsStringSync(pubspecContent);
-    print('Version bumped: $fullVersion -> $newVersion');
-  } else {
-    print('Skipping version bump (--no-increment). Current: $fullVersion');
+  // 2. Use the version from pubspec.yaml as-is.
+  final currentVersion = fullVersion;
+  if (!_confirmVersion(currentVersion)) {
+    print('Build cancelled.');
+    exit(0);
   }
-
-  final currentVersion = '$versionName+$buildNumber';
   final fileLabel = '${versionName}_$buildNumber';
 
   // Ensure build_output directory exists
@@ -139,11 +128,9 @@ void main(List<String> args) async {
     await Process.run('flutter', ['pub', 'get']);
   }
 
-  final podResult = await Process.run(
-    'pod',
-    ['install'],
-    workingDirectory: 'ios',
-  );
+  final podResult = await Process.run('pod', [
+    'install',
+  ], workingDirectory: 'ios');
   if (podResult.exitCode != 0) {
     stderr.writeln('Warning: pod install failed.');
     stderr.write(podResult.stderr);
@@ -168,4 +155,10 @@ void _deleteIfExists(String path) {
     file.deleteSync();
     print('Deleted $path');
   }
+}
+
+bool _confirmVersion(String version) {
+  stdout.write('Use version $version ? Type Yes to continue: ');
+  final input = stdin.readLineSync()?.trim().toLowerCase();
+  return input == 'yes' || input == 'y';
 }

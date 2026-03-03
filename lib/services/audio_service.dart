@@ -51,6 +51,8 @@ class AudioService {
     await _tts.setVolume(1.0);
     await _tts.setPitch(1.0);
 
+    await _configurePlayersForMixing();
+
     // Try to pre-load sound assets (optional - falls back to TTS)
     try {
       await _bellPlayer.setSource(AssetSource('sounds/bell.mp3'));
@@ -62,6 +64,28 @@ class AudioService {
     }
 
     _isInitialized = true;
+  }
+
+  Future<void> _configurePlayersForMixing() async {
+    // Android can otherwise request exclusive audio focus per player,
+    // which prevents overlap between bell/count/clap cues.
+    final mixingContext =
+        AudioContextConfig(
+          focus: AudioContextConfigFocus.mixWithOthers,
+        ).build();
+
+    await _bellPlayer.setAudioContext(mixingContext);
+    await _warningPlayer.setAudioContext(mixingContext);
+    await _countPlayer.setAudioContext(mixingContext);
+    await _clapPlayer.setAudioContext(mixingContext);
+    await _voicePlayer.setAudioContext(mixingContext);
+    await _keepAlivePlayer.setAudioContext(mixingContext);
+
+    // Keep cue latency low for simultaneous trigger points.
+    await _bellPlayer.setPlayerMode(PlayerMode.lowLatency);
+    await _warningPlayer.setPlayerMode(PlayerMode.lowLatency);
+    await _countPlayer.setPlayerMode(PlayerMode.lowLatency);
+    await _clapPlayer.setPlayerMode(PlayerMode.lowLatency);
   }
 
   Future<void> playBell() async {
