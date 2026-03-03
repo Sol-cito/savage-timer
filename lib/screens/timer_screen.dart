@@ -111,7 +111,9 @@ class TimerScreen extends ConsumerWidget {
                 CircularTimer(
                   time: session.preparationCountdown ?? session.formattedTime,
                   progress: session.progress,
-                  isCountdown: session.state == SessionState.preparing,
+                  isCountdown:
+                      session.state == SessionState.preparing ||
+                      session.pausedDuringPreparation,
                   progressColor: _getProgressColor(
                     session,
                     settings.savageLevel,
@@ -164,12 +166,12 @@ class TimerScreen extends ConsumerWidget {
           onPressed:
               (isRunning || isPaused || isCompleted)
                   ? () {
-                      if (isRunning || isPaused) {
-                        _showResetConfirmDialog(context, timerService);
-                      } else {
-                        timerService.reset();
-                      }
+                    if (isRunning || isPaused) {
+                      _showResetConfirmDialog(context, timerService);
+                    } else {
+                      timerService.reset();
                     }
+                  }
                   : null,
           backgroundColor: Colors.white.withValues(alpha: 0.2),
           iconColor: Colors.white,
@@ -196,8 +198,7 @@ class TimerScreen extends ConsumerWidget {
         // Skip button
         ControlButton(
           icon: Icons.skip_next,
-          onPressed:
-              (isRunning || isPaused) ? () => timerService.skip() : null,
+          onPressed: (isRunning || isPaused) ? () => timerService.skip() : null,
           backgroundColor: Colors.white.withValues(alpha: 0.2),
           iconColor: Colors.white,
           size: resetSize,
@@ -213,25 +214,26 @@ class TimerScreen extends ConsumerWidget {
   ) {
     showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reset Timer'),
-        content: const Text(
-          'Are you sure you want to reset? Current progress will be lost.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Reset Timer'),
+            content: const Text(
+              'Are you sure you want to reset? Current progress will be lost.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  timerService.reset();
+                },
+                child: const Text('Reset'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              timerService.reset();
-            },
-            child: const Text('Reset'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -244,7 +246,8 @@ class TimerScreen extends ConsumerWidget {
       return [Colors.green.shade900, Colors.green.shade700];
     }
     if (session.state == SessionState.idle ||
-        session.state == SessionState.preparing) {
+        session.state == SessionState.preparing ||
+        session.pausedDuringPreparation) {
       return [Colors.grey.shade900, Colors.grey.shade800];
     }
     if (session.isResting) {
@@ -283,7 +286,8 @@ class TimerScreen extends ConsumerWidget {
     SavageLevel level,
     bool motivationalOn,
   ) {
-    if (session.state == SessionState.preparing) {
+    if (session.state == SessionState.preparing ||
+        session.pausedDuringPreparation) {
       return Colors.white;
     }
     if (session.state == SessionState.completed) {

@@ -12,6 +12,7 @@ class WorkoutSession extends Equatable {
   final int totalRounds;
   final int roundDurationSeconds;
   final int restDurationSeconds;
+  final bool pausedDuringPreparation;
 
   const WorkoutSession({
     this.currentRound = 1,
@@ -21,6 +22,7 @@ class WorkoutSession extends Equatable {
     this.totalRounds = 3,
     this.roundDurationSeconds = 180,
     this.restDurationSeconds = 30,
+    this.pausedDuringPreparation = false,
   });
 
   bool get isResting => phase == SessionPhase.rest;
@@ -31,12 +33,14 @@ class WorkoutSession extends Equatable {
 
   /// Returns the countdown number ("3", "2", "1") during preparation, null otherwise.
   String? get preparationCountdown {
-    if (state != SessionState.preparing) return null;
+    if (state != SessionState.preparing && !pausedDuringPreparation) {
+      return null;
+    }
     return '$remainingSeconds';
   }
 
   double get progress {
-    if (state == SessionState.preparing) return 0.0;
+    if (state == SessionState.preparing || pausedDuringPreparation) return 0.0;
     final totalSeconds =
         phase == SessionPhase.round
             ? roundDurationSeconds
@@ -53,7 +57,9 @@ class WorkoutSession extends Equatable {
 
   String get phaseLabel {
     if (state == SessionState.idle) return 'READY';
-    if (state == SessionState.preparing) return 'GET READY';
+    if (state == SessionState.preparing || pausedDuringPreparation) {
+      return 'GET READY';
+    }
     if (state == SessionState.completed) return 'DONE';
     return phase == SessionPhase.round ? 'ROUND $currentRound' : 'REST';
   }
@@ -69,7 +75,11 @@ class WorkoutSession extends Equatable {
   }
 
   int get elapsedSeconds {
-    if (state == SessionState.idle || state == SessionState.preparing) return 0;
+    if (state == SessionState.idle ||
+        state == SessionState.preparing ||
+        pausedDuringPreparation) {
+      return 0;
+    }
     if (state == SessionState.completed) return totalDurationSeconds;
     if (phase == SessionPhase.round) {
       return (currentRound - 1) * (roundDurationSeconds + restDurationSeconds) +
@@ -90,6 +100,7 @@ class WorkoutSession extends Equatable {
   String? get nextPhaseLabel {
     if (state == SessionState.idle ||
         state == SessionState.preparing ||
+        pausedDuringPreparation ||
         state == SessionState.completed) {
       return null;
     }
@@ -102,6 +113,7 @@ class WorkoutSession extends Equatable {
   int? get nextPhaseDurationSeconds {
     if (state == SessionState.idle ||
         state == SessionState.preparing ||
+        pausedDuringPreparation ||
         state == SessionState.completed) {
       return null;
     }
@@ -127,6 +139,7 @@ class WorkoutSession extends Equatable {
     int? totalRounds,
     int? roundDurationSeconds,
     int? restDurationSeconds,
+    bool? pausedDuringPreparation,
   }) {
     return WorkoutSession(
       currentRound: currentRound ?? this.currentRound,
@@ -136,6 +149,8 @@ class WorkoutSession extends Equatable {
       totalRounds: totalRounds ?? this.totalRounds,
       roundDurationSeconds: roundDurationSeconds ?? this.roundDurationSeconds,
       restDurationSeconds: restDurationSeconds ?? this.restDurationSeconds,
+      pausedDuringPreparation:
+          pausedDuringPreparation ?? this.pausedDuringPreparation,
     );
   }
 
@@ -148,5 +163,6 @@ class WorkoutSession extends Equatable {
     totalRounds,
     roundDurationSeconds,
     restDurationSeconds,
+    pausedDuringPreparation,
   ];
 }

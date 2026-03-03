@@ -36,55 +36,58 @@ class SettingsScreen extends ConsumerWidget {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[850],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'TIMER IS RUNNING',
-          style: GoogleFonts.oswald(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-            letterSpacing: 2,
-          ),
-        ),
-        content: Text(
-          'Changing this setting will stop the current timer. Continue?',
-          style: GoogleFonts.rajdhani(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.white.withValues(alpha: 0.8),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.rajdhani(
-                fontSize: 16,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: Colors.grey[850],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Text(
+              'TIMER IS RUNNING',
+              style: GoogleFonts.oswald(
+                fontSize: 22,
                 fontWeight: FontWeight.w600,
-                color: Colors.white.withValues(alpha: 0.5),
+                color: Colors.white,
+                letterSpacing: 2,
               ),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ref.read(timerServiceProvider.notifier).reset();
-              onChange();
-            },
-            child: Text(
-              'Stop & Change',
+            content: Text(
+              'Changing this setting will stop the current timer. Continue?',
               style: GoogleFonts.rajdhani(
                 fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Colors.redAccent,
+                fontWeight: FontWeight.w500,
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  ref.read(timerServiceProvider.notifier).reset();
+                  onChange();
+                },
+                child: Text(
+                  'Stop & Change',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.redAccent,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -119,7 +122,9 @@ class SettingsScreen extends ConsumerWidget {
                   icon: Icons.timer_outlined,
                 ),
                 const SizedBox(height: 8),
-                _ValueDisplay(value: _formatDuration(settings.roundDurationSeconds)),
+                _ValueDisplay(
+                  value: _formatDuration(settings.roundDurationSeconds),
+                ),
                 const SizedBox(height: 4),
                 SliderTheme(
                   data: _sliderTheme(context),
@@ -182,13 +187,14 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     _RoundButton(
                       icon: Icons.remove_rounded,
-                      onPressed: settings.totalRounds > 1
-                          ? () => _guardTimerChange(context, ref, () {
+                      onPressed:
+                          settings.totalRounds > 1
+                              ? () => _guardTimerChange(context, ref, () {
                                 settingsService.updateTotalRounds(
                                   settings.totalRounds - 1,
                                 );
                               })
-                          : null,
+                              : null,
                     ),
                     const SizedBox(width: 28),
                     _ValueDisplay(
@@ -198,13 +204,14 @@ class SettingsScreen extends ConsumerWidget {
                     const SizedBox(width: 28),
                     _RoundButton(
                       icon: Icons.add_rounded,
-                      onPressed: settings.totalRounds < 20
-                          ? () => _guardTimerChange(context, ref, () {
+                      onPressed:
+                          settings.totalRounds < 20
+                              ? () => _guardTimerChange(context, ref, () {
                                 settingsService.updateTotalRounds(
                                   settings.totalRounds + 1,
                                 );
                               })
-                          : null,
+                              : null,
                     ),
                   ],
                 ),
@@ -216,10 +223,7 @@ class SettingsScreen extends ConsumerWidget {
             // Audio section
             _SettingsCard(
               children: [
-                _SectionHeader(
-                  title: 'AUDIO',
-                  icon: Icons.volume_up_outlined,
-                ),
+                _SectionHeader(title: 'AUDIO', icon: Icons.volume_up_outlined),
                 const SizedBox(height: 14),
 
                 // Volume
@@ -276,13 +280,24 @@ class SettingsScreen extends ConsumerWidget {
                   },
                 ),
 
-                // Last 30s Alert toggle
+                // Last 30s Voice Alert toggle
                 _ToggleRow(
-                  label: 'Last 30s Alert',
+                  label: 'Last 30s Voice Alert',
                   value: settings.enableLastSecondsAlert,
                   onChanged: (value) {
                     _guardTimerChange(context, ref, () {
                       settingsService.updateLastSecondsAlert(value);
+                    });
+                  },
+                ),
+
+                // Last 10s Clapping Alert toggle
+                _ToggleRow(
+                  label: 'Last 10s Clapping Alert',
+                  value: settings.enableLast10SecondsClappingAlert,
+                  onChanged: (value) {
+                    _guardTimerChange(context, ref, () {
+                      settingsService.updateLast10SecondsClappingAlert(value);
                     });
                   },
                 ),
@@ -351,7 +366,9 @@ class SettingsScreen extends ConsumerWidget {
                         _guardTimerChange(context, ref, () {
                           settingsService.updateSavageLevel(level);
                           if (settings.enableMotivationalSound) {
-                            ref.read(audioServiceProvider).playExampleVoice(level);
+                            ref
+                                .read(audioServiceProvider)
+                                .playExampleVoice(level);
                           }
                         });
                       },
@@ -367,7 +384,8 @@ class SettingsScreen extends ConsumerWidget {
             // Reset button
             Center(
               child: TextButton.icon(
-                onPressed: () => _showResetDialog(context, ref, settingsService),
+                onPressed:
+                    () => _showResetDialog(context, ref, settingsService),
                 icon: Icon(
                   Icons.restore_rounded,
                   color: Colors.white.withValues(alpha: 0.4),
@@ -386,26 +404,22 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 32),
 
             // Legal links
-            Divider(
-              color: Colors.white.withValues(alpha: 0.08),
-              thickness: 1,
-            ),
+            Divider(color: Colors.white.withValues(alpha: 0.08), thickness: 1),
             const SizedBox(height: 16),
-            _SectionHeader(
-              title: 'LEGAL',
-              icon: Icons.gavel_rounded,
-            ),
+            _SectionHeader(title: 'LEGAL', icon: Icons.gavel_rounded),
             const SizedBox(height: 12),
             _LegalLinkTile(
               icon: Icons.shield_outlined,
               label: 'Privacy Policy',
-              url: 'https://sol-cito.github.io/savage-timer/privacy_policy.html',
+              url:
+                  'https://sol-cito.github.io/savage-timer/privacy_policy.html',
             ),
             const SizedBox(height: 8),
             _LegalLinkTile(
               icon: Icons.description_outlined,
               label: 'Terms of Service',
-              url: 'https://sol-cito.github.io/savage-timer/terms_of_service.html',
+              url:
+                  'https://sol-cito.github.io/savage-timer/terms_of_service.html',
             ),
           ],
         ),
@@ -432,59 +446,66 @@ class SettingsScreen extends ConsumerWidget {
     return '${minutes}m ${secs}s';
   }
 
-  void _showResetDialog(BuildContext context, WidgetRef ref, SettingsService settingsService) {
+  void _showResetDialog(
+    BuildContext context,
+    WidgetRef ref,
+    SettingsService settingsService,
+  ) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[850],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'RESET SETTINGS',
-          style: GoogleFonts.oswald(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-            letterSpacing: 2,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to reset all settings to defaults?',
-          style: GoogleFonts.rajdhani(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.white.withValues(alpha: 0.8),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.rajdhani(
-                fontSize: 16,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: Colors.grey[850],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Text(
+              'RESET SETTINGS',
+              style: GoogleFonts.oswald(
+                fontSize: 22,
                 fontWeight: FontWeight.w600,
-                color: Colors.white.withValues(alpha: 0.5),
+                color: Colors.white,
+                letterSpacing: 2,
               ),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _guardTimerChange(context, ref, () {
-                settingsService.resetToDefaults();
-              });
-            },
-            child: Text(
-              'Reset',
+            content: Text(
+              'Are you sure you want to reset all settings to defaults?',
               style: GoogleFonts.rajdhani(
                 fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Colors.redAccent,
+                fontWeight: FontWeight.w500,
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _guardTimerChange(context, ref, () {
+                    settingsService.resetToDefaults();
+                  });
+                },
+                child: Text(
+                  'Reset',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.redAccent,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }
@@ -586,10 +607,7 @@ class _SliderLabels extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(left, style: style),
-          Text(right, style: style),
-        ],
+        children: [Text(left, style: style), Text(right, style: style)],
       ),
     );
   }
@@ -689,10 +707,7 @@ class _LegalLinkTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          launchUrl(
-            Uri.parse(url),
-            mode: LaunchMode.externalApplication,
-          );
+          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
         },
         borderRadius: BorderRadius.circular(12),
         child: Container(
@@ -707,11 +722,7 @@ class _LegalLinkTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(
-                icon,
-                color: Colors.white.withValues(alpha: 0.5),
-                size: 20,
-              ),
+              Icon(icon, color: Colors.white.withValues(alpha: 0.5), size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(

@@ -46,6 +46,31 @@ void main() {
     });
   });
 
+  group('SettingsService last 10s clapping alert', () {
+    test('default enableLast10SecondsClappingAlert is false', () {
+      final service = SettingsService(prefs);
+      expect(service.state.enableLast10SecondsClappingAlert, false);
+    });
+
+    test('updateLast10SecondsClappingAlert sets to true', () {
+      final service = SettingsService(prefs);
+      service.updateLast10SecondsClappingAlert(true);
+      expect(service.state.enableLast10SecondsClappingAlert, true);
+    });
+
+    test(
+      'updateLast10SecondsClappingAlert persists across instances',
+      () async {
+        final service1 = SettingsService(prefs);
+        service1.updateLast10SecondsClappingAlert(true);
+        await Future<void>.delayed(Duration.zero);
+
+        final service2 = SettingsService(prefs);
+        expect(service2.state.enableLast10SecondsClappingAlert, true);
+      },
+    );
+  });
+
   group('SettingsService vibration', () {
     test('default enableVibration is true', () {
       final service = SettingsService(prefs);
@@ -159,10 +184,7 @@ void main() {
         enableMotivationalSound: false,
       );
 
-      await prefs.setString(
-        'timer_settings',
-        jsonEncode(settings.toJson()),
-      );
+      await prefs.setString('timer_settings', jsonEncode(settings.toJson()));
 
       final service = SettingsService(prefs);
       expect(service.state.roundDurationSeconds, 120);

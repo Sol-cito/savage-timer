@@ -52,6 +52,13 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
+            // Keep release outputs focused on real-device Android ABIs.
+            // Excludes x86_64 (mainly emulator/desktop targets) to reduce bundle size.
+            ndk {
+                abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            }
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
 }

@@ -11,6 +11,7 @@ void main() {
       expect(settings.restDurationSeconds, 30);
       expect(settings.totalRounds, 3);
       expect(settings.enableLastSecondsAlert, true);
+      expect(settings.enableLast10SecondsClappingAlert, false);
       expect(settings.lastSecondsThreshold, 30);
       expect(settings.savageLevel, SavageLevel.level2);
       expect(settings.enableMotivationalSound, true);
@@ -45,23 +46,27 @@ void main() {
       expect(settings.restDurationSeconds, 30);
       expect(settings.totalRounds, 3);
       expect(settings.enableLastSecondsAlert, true);
+      expect(settings.enableLast10SecondsClappingAlert, false);
       expect(settings.lastSecondsThreshold, 30);
       expect(settings.savageLevel, SavageLevel.level2);
       expect(settings.volume, 0.8);
       expect(settings.enableMotivationalSound, true);
     });
 
-    test('fromJson backward compat: missing enableMotivationalSound defaults to true', () {
-      final settings = TimerSettings.fromJson({
-        'roundDurationSeconds': 120,
-        'restDurationSeconds': 45,
-        'totalRounds': 5,
-        'savageLevel': 2,
-        // enableMotivationalSound key intentionally omitted
-      });
-      expect(settings.enableMotivationalSound, true);
-      expect(settings.roundDurationSeconds, 120);
-    });
+    test(
+      'fromJson backward compat: missing enableMotivationalSound defaults to true',
+      () {
+        final settings = TimerSettings.fromJson({
+          'roundDurationSeconds': 120,
+          'restDurationSeconds': 45,
+          'totalRounds': 5,
+          'savageLevel': 2,
+          // enableMotivationalSound key intentionally omitted
+        });
+        expect(settings.enableMotivationalSound, true);
+        expect(settings.roundDurationSeconds, 120);
+      },
+    );
 
     test('volume default is 0.8', () {
       const settings = TimerSettings();
@@ -326,5 +331,18 @@ void main() {
       );
       expect(rest.phaseLabel, 'REST');
     });
+
+    test(
+      'pausedDuringPreparation preserves GET READY label and 3/2/1 countdown',
+      () {
+        const pausedPrep = WorkoutSession(
+          state: SessionState.paused,
+          remainingSeconds: 2,
+          pausedDuringPreparation: true,
+        );
+        expect(pausedPrep.phaseLabel, 'GET READY');
+        expect(pausedPrep.preparationCountdown, '2');
+      },
+    );
   });
 }

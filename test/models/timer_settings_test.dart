@@ -3,6 +3,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:savage_timer/models/timer_settings.dart';
 
 void main() {
+  group('TimerSettings last 10s clapping alert', () {
+    test('defaults to false', () {
+      const settings = TimerSettings();
+      expect(settings.enableLast10SecondsClappingAlert, false);
+    });
+
+    test('copyWith can override to true', () {
+      const settings = TimerSettings();
+      final copy = settings.copyWith(enableLast10SecondsClappingAlert: true);
+      expect(copy.enableLast10SecondsClappingAlert, true);
+    });
+
+    test('toJson includes enableLast10SecondsClappingAlert', () {
+      const settings = TimerSettings(enableLast10SecondsClappingAlert: true);
+      final json = settings.toJson();
+      expect(json.containsKey('enableLast10SecondsClappingAlert'), true);
+      expect(json['enableLast10SecondsClappingAlert'], true);
+    });
+
+    test('fromJson reads enableLast10SecondsClappingAlert', () {
+      const original = TimerSettings(enableLast10SecondsClappingAlert: true);
+      final restored = TimerSettings.fromJson(original.toJson());
+      expect(restored.enableLast10SecondsClappingAlert, true);
+    });
+
+    test('fromJson defaults to false when key is missing', () {
+      final json =
+          const TimerSettings().toJson()
+            ..remove('enableLast10SecondsClappingAlert');
+      final restored = TimerSettings.fromJson(json);
+      expect(restored.enableLast10SecondsClappingAlert, false);
+    });
+  });
+
   group('TimerSettings enableVibration', () {
     test('defaults to true', () {
       const settings = TimerSettings();
@@ -93,8 +127,14 @@ void main() {
 
   group('TimerSettings equality', () {
     test('two instances with same values are equal', () {
-      const a = TimerSettings(enableVibration: false, enableKeepScreenOn: false);
-      const b = TimerSettings(enableVibration: false, enableKeepScreenOn: false);
+      const a = TimerSettings(
+        enableVibration: false,
+        enableKeepScreenOn: false,
+      );
+      const b = TimerSettings(
+        enableVibration: false,
+        enableKeepScreenOn: false,
+      );
       expect(a, equals(b));
     });
 

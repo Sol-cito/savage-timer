@@ -39,11 +39,11 @@ class _FakeVibrationService extends VibrationService {
 /// settings guard dialog.
 class _RunningTimerService extends TimerService {
   _RunningTimerService(TimerSettings settings)
-      : super(
-          audioService: FakeAudioService(),
-          vibrationService: _FakeVibrationService(),
-          settings: settings,
-        ) {
+    : super(
+        audioService: FakeAudioService(),
+        vibrationService: _FakeVibrationService(),
+        settings: settings,
+      ) {
     state = state.copyWith(state: SessionState.running);
   }
 
@@ -62,9 +62,7 @@ Widget buildSettingsScreen(SharedPreferences prefs) {
       sharedPreferencesProvider.overrideWithValue(prefs),
       audioServiceProvider.overrideWithValue(fakeAudio),
     ],
-    child: const MaterialApp(
-      home: SettingsScreen(),
-    ),
+    child: const MaterialApp(home: SettingsScreen()),
   );
 }
 
@@ -81,9 +79,7 @@ Widget buildSettingsScreenWithRunningTimer(SharedPreferences prefs) {
         return _RunningTimerService(settings);
       }),
     ],
-    child: const MaterialApp(
-      home: SettingsScreen(),
-    ),
+    child: const MaterialApp(home: SettingsScreen()),
   );
 }
 
@@ -241,10 +237,10 @@ void main() {
         const Offset(0, -200),
       );
 
-      final row = find.ancestor(
-        of: find.text('Vibration'),
-        matching: find.byType(Row),
-      ).first;
+      final row =
+          find
+              .ancestor(of: find.text('Vibration'), matching: find.byType(Row))
+              .first;
       final switchWidget = tester.widget<Switch>(
         find.descendant(of: row, matching: find.byType(Switch)),
       );
@@ -262,10 +258,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final row = find.ancestor(
-        of: find.text('Vibration'),
-        matching: find.byType(Row),
-      ).first;
+      final row =
+          find
+              .ancestor(of: find.text('Vibration'), matching: find.byType(Row))
+              .first;
       final switchFinder = find.descendant(
         of: row,
         matching: find.byType(Switch),
@@ -278,6 +274,32 @@ void main() {
         tester.element(find.byType(SettingsScreen)),
       );
       expect(container.read(settingsServiceProvider).enableVibration, isFalse);
+    });
+  });
+
+  group('SettingsScreen last alerts toggles', () {
+    testWidgets('displays Last 30s Voice Alert label', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Last 30s Voice Alert'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      expect(find.text('Last 30s Voice Alert'), findsOneWidget);
+    });
+
+    testWidgets('displays Last 10s Clapping Alert label', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.dragUntilVisible(
+        find.text('Last 10s Clapping Alert'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      expect(find.text('Last 10s Clapping Alert'), findsOneWidget);
     });
   });
 
@@ -328,10 +350,13 @@ void main() {
         const Offset(0, -200),
       );
 
-      final row = find.ancestor(
-        of: find.text('Keep Screen On'),
-        matching: find.byType(Row),
-      ).first;
+      final row =
+          find
+              .ancestor(
+                of: find.text('Keep Screen On'),
+                matching: find.byType(Row),
+              )
+              .first;
       final switchWidget = tester.widget<Switch>(
         find.descendant(of: row, matching: find.byType(Switch)),
       );
@@ -349,10 +374,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final row = find.ancestor(
-        of: find.text('Keep Screen On'),
-        matching: find.byType(Row),
-      ).first;
+      final row =
+          find
+              .ancestor(
+                of: find.text('Keep Screen On'),
+                matching: find.byType(Row),
+              )
+              .first;
       final switchFinder = find.descendant(
         of: row,
         matching: find.byType(Switch),
@@ -450,18 +478,24 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final row = find
-          .ancestor(
-              of: find.text('Keep Screen On'), matching: find.byType(Row))
-          .first;
-      final switchFinder =
-          find.descendant(of: row, matching: find.byType(Switch));
+      final row =
+          find
+              .ancestor(
+                of: find.text('Keep Screen On'),
+                matching: find.byType(Row),
+              )
+              .first;
+      final switchFinder = find.descendant(
+        of: row,
+        matching: find.byType(Switch),
+      );
       await tester.tap(switchFinder, warnIfMissed: false);
       await tester.pumpAndSettle();
     }
 
-    testWidgets('shows confirmation dialog when timer is running',
-        (tester) async {
+    testWidgets('shows confirmation dialog when timer is running', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
       await tester.pumpAndSettle();
 
@@ -478,8 +512,9 @@ void main() {
       expect(find.text('Stop & Change'), findsOneWidget);
     });
 
-    testWidgets('does not change setting when dialog is cancelled',
-        (tester) async {
+    testWidgets('does not change setting when dialog is cancelled', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
       await tester.pumpAndSettle();
 
@@ -499,28 +534,26 @@ void main() {
     });
 
     testWidgets(
-        'disables Keep Screen On and stops timer when Stop & Change tapped',
-        (tester) async {
-      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-      await tester.pumpAndSettle();
+      'disables Keep Screen On and stops timer when Stop & Change tapped',
+      (tester) async {
+        await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+        await tester.pumpAndSettle();
 
-      await scrollToKeepScreenOnAndTap(tester);
+        await scrollToKeepScreenOnAndTap(tester);
 
-      await tester.tap(find.text('Stop & Change'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Stop & Change'));
+        await tester.pumpAndSettle();
 
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(SettingsScreen)),
-      );
-      expect(
-        container.read(settingsServiceProvider).enableKeepScreenOn,
-        isFalse,
-      );
-      expect(
-        container.read(timerServiceProvider).state,
-        SessionState.idle,
-      );
-    });
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(SettingsScreen)),
+        );
+        expect(
+          container.read(settingsServiceProvider).enableKeepScreenOn,
+          isFalse,
+        );
+        expect(container.read(timerServiceProvider).state, SessionState.idle);
+      },
+    );
 
     testWidgets('no dialog when timer is idle', (tester) async {
       await tester.pumpWidget(buildSettingsScreen(prefs));
@@ -533,12 +566,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final row = find
-          .ancestor(
-              of: find.text('Keep Screen On'), matching: find.byType(Row))
-          .first;
-      final switchFinder =
-          find.descendant(of: row, matching: find.byType(Switch));
+      final row =
+          find
+              .ancestor(
+                of: find.text('Keep Screen On'),
+                matching: find.byType(Row),
+              )
+              .first;
+      final switchFinder = find.descendant(
+        of: row,
+        matching: find.byType(Switch),
+      );
       await tester.tap(switchFinder, warnIfMissed: false);
       await tester.pumpAndSettle();
 
@@ -556,69 +594,73 @@ void main() {
     });
   });
 
-  group('SettingsScreen volume slider - no guard (adjustable while running)', () {
-    /// Finds the volume slider (min 0.0, max 1.0, divisions 10) and taps it.
-    Future<Finder> scrollToVolumeSliderAndTap(WidgetTester tester) async {
-      await tester.dragUntilVisible(
-        find.text('AUDIO'),
-        find.byType(ListView),
-        const Offset(0, -200),
-      );
-      await tester.pumpAndSettle();
+  group(
+    'SettingsScreen volume slider - no guard (adjustable while running)',
+    () {
+      /// Finds the volume slider (min 0.0, max 1.0, divisions 10) and taps it.
+      Future<Finder> scrollToVolumeSliderAndTap(WidgetTester tester) async {
+        await tester.dragUntilVisible(
+          find.text('AUDIO'),
+          find.byType(ListView),
+          const Offset(0, -200),
+        );
+        await tester.pumpAndSettle();
 
-      final sliders = find.byType(Slider);
-      Finder? volumeSlider;
-      for (var i = 0; i < tester.widgetList(sliders).length; i++) {
-        final slider = tester.widget<Slider>(sliders.at(i));
-        if (slider.max == 1.0 && slider.divisions == 10) {
-          volumeSlider = sliders.at(i);
-          break;
+        final sliders = find.byType(Slider);
+        Finder? volumeSlider;
+        for (var i = 0; i < tester.widgetList(sliders).length; i++) {
+          final slider = tester.widget<Slider>(sliders.at(i));
+          if (slider.max == 1.0 && slider.divisions == 10) {
+            volumeSlider = sliders.at(i);
+            break;
+          }
         }
+        expect(volumeSlider, isNotNull);
+
+        await tester.tap(volumeSlider!, warnIfMissed: false);
+        await tester.pumpAndSettle();
+        return volumeSlider!;
       }
-      expect(volumeSlider, isNotNull);
 
-      await tester.tap(volumeSlider!, warnIfMissed: false);
-      await tester.pumpAndSettle();
-      return volumeSlider!;
-    }
+      testWidgets('no confirmation dialog when timer is running', (
+        tester,
+      ) async {
+        await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+        await tester.pumpAndSettle();
 
-    testWidgets('no confirmation dialog when timer is running',
-        (tester) async {
-      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-      await tester.pumpAndSettle();
+        await scrollToVolumeSliderAndTap(tester);
 
-      await scrollToVolumeSliderAndTap(tester);
+        // Volume should NOT trigger the guard dialog
+        expect(find.text('TIMER IS RUNNING'), findsNothing);
+      });
 
-      // Volume should NOT trigger the guard dialog
-      expect(find.text('TIMER IS RUNNING'), findsNothing);
-    });
+      testWidgets('volume changes while timer keeps running', (tester) async {
+        await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+        await tester.pumpAndSettle();
 
-    testWidgets('volume changes while timer keeps running', (tester) async {
-      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-      await tester.pumpAndSettle();
+        await scrollToVolumeSliderAndTap(tester);
 
-      await scrollToVolumeSliderAndTap(tester);
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(SettingsScreen)),
+        );
+        // Timer should still be running
+        expect(
+          container.read(timerServiceProvider).state,
+          SessionState.running,
+        );
+      });
 
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(SettingsScreen)),
-      );
-      // Timer should still be running
-      expect(
-        container.read(timerServiceProvider).state,
-        SessionState.running,
-      );
-    });
+      testWidgets('volume changes when timer is idle', (tester) async {
+        await tester.pumpWidget(buildSettingsScreen(prefs));
+        await tester.pumpAndSettle();
 
-    testWidgets('volume changes when timer is idle', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+        await scrollToVolumeSliderAndTap(tester);
 
-      await scrollToVolumeSliderAndTap(tester);
-
-      // No dialog should appear
-      expect(find.text('TIMER IS RUNNING'), findsNothing);
-    });
-  });
+        // No dialog should appear
+        expect(find.text('TIMER IS RUNNING'), findsNothing);
+      });
+    },
+  );
 
   group('SettingsScreen vibration toggle - timer guard dialog', () {
     Future<void> scrollToVibrationAndTap(WidgetTester tester) async {
@@ -629,17 +671,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final row = find
-          .ancestor(of: find.text('Vibration'), matching: find.byType(Row))
-          .first;
-      final switchFinder =
-          find.descendant(of: row, matching: find.byType(Switch));
+      final row =
+          find
+              .ancestor(of: find.text('Vibration'), matching: find.byType(Row))
+              .first;
+      final switchFinder = find.descendant(
+        of: row,
+        matching: find.byType(Switch),
+      );
       await tester.tap(switchFinder, warnIfMissed: false);
       await tester.pumpAndSettle();
     }
 
-    testWidgets('shows confirmation dialog when timer is running',
-        (tester) async {
+    testWidgets('shows confirmation dialog when timer is running', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
       await tester.pumpAndSettle();
 
@@ -656,8 +702,9 @@ void main() {
       expect(find.text('Stop & Change'), findsOneWidget);
     });
 
-    testWidgets('does not change vibration when dialog is cancelled',
-        (tester) async {
+    testWidgets('does not change vibration when dialog is cancelled', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
       await tester.pumpAndSettle();
 
@@ -673,24 +720,86 @@ void main() {
       expect(container.read(settingsServiceProvider).enableVibration, isTrue);
     });
 
-    testWidgets('disables vibration and stops timer when Stop & Change tapped',
-        (tester) async {
+    testWidgets(
+      'disables vibration and stops timer when Stop & Change tapped',
+      (tester) async {
+        await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+        await tester.pumpAndSettle();
+
+        await scrollToVibrationAndTap(tester);
+
+        await tester.tap(find.text('Stop & Change'));
+        await tester.pumpAndSettle();
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(SettingsScreen)),
+        );
+        expect(
+          container.read(settingsServiceProvider).enableVibration,
+          isFalse,
+        );
+        expect(container.read(timerServiceProvider).state, SessionState.idle);
+      },
+    );
+  });
+
+  group('SettingsScreen last 10s clapping toggle - timer guard dialog', () {
+    Future<void> scrollToClappingToggleAndTap(WidgetTester tester) async {
+      await tester.dragUntilVisible(
+        find.text('Last 10s Clapping Alert'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+
+      final row =
+          find
+              .ancestor(
+            of: find.text('Last 10s Clapping Alert'),
+            matching: find.byType(Row),
+          )
+              .first;
+      final switchFinder = find.descendant(
+        of: row,
+        matching: find.byType(Switch),
+      );
+      await tester.tap(switchFinder, warnIfMissed: false);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows confirmation dialog when timer is running', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
       await tester.pumpAndSettle();
 
-      await scrollToVibrationAndTap(tester);
+      await scrollToClappingToggleAndTap(tester);
 
-      await tester.tap(find.text('Stop & Change'));
-      await tester.pumpAndSettle();
-
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(SettingsScreen)),
-      );
-      expect(container.read(settingsServiceProvider).enableVibration, isFalse);
-      expect(
-        container.read(timerServiceProvider).state,
-        SessionState.idle,
-      );
+      expect(find.text('TIMER IS RUNNING'), findsOneWidget);
+      expect(find.text('Stop & Change'), findsOneWidget);
     });
+
+    testWidgets(
+      'enables clapping alert and stops timer when Stop & Change tapped',
+      (tester) async {
+        await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+        await tester.pumpAndSettle();
+
+        await scrollToClappingToggleAndTap(tester);
+        await tester.tap(find.text('Stop & Change'));
+        await tester.pumpAndSettle();
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(SettingsScreen)),
+        );
+        expect(
+          container
+              .read(settingsServiceProvider)
+              .enableLast10SecondsClappingAlert,
+          isTrue,
+        );
+        expect(container.read(timerServiceProvider).state, SessionState.idle);
+      },
+    );
   });
 }
