@@ -23,6 +23,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
   final Random _random;
 
   bool _lastSecondsAlertTriggered = false;
+  bool _last10SecondsAlertTriggered = false;
   bool _pausedDuringPreparation = false;
 
   final int _preparationSeconds;
@@ -72,6 +73,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
         roundDurationSeconds: settings.roundDurationSeconds,
         restDurationSeconds: settings.restDurationSeconds,
         remainingSeconds: settings.roundDurationSeconds,
+        pausedDuringPreparation: false,
       );
     }
   }
@@ -95,12 +97,12 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
     if (_preparationSeconds <= 0) {
       // Skip preparation, go straight to running
-      state = state.copyWith(state: SessionState.running);
-      _startTimer();
-      _audioService.playCountStart(
-        _settings.savageLevel,
-        _settings.enableMotivationalSound,
+      state = state.copyWith(
+        state: SessionState.running,
+        pausedDuringPreparation: false,
       );
+      _startTimer();
+      _playRoundStartCue();
       if (_settings.enableVibration) _vibrationService.roundStart();
       _scheduleStartVoice();
       _scheduleExerciseVoices();
@@ -111,6 +113,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
     state = state.copyWith(
       state: SessionState.preparing,
       remainingSeconds: _preparationSeconds,
+      pausedDuringPreparation: false,
     );
     _audioService.playCount(
       _preparationSeconds,
@@ -133,15 +136,13 @@ class TimerService extends StateNotifier<WorkoutSession> {
     if (newRemaining <= 0) {
       // Preparation done — transition to running
       _prepTimer?.cancel();
-      _audioService.playCountStart(
-        _settings.savageLevel,
-        _settings.enableMotivationalSound,
-      );
+      _playRoundStartCue();
       if (_settings.enableVibration) _vibrationService.roundStart();
 
       state = state.copyWith(
         state: SessionState.running,
         remainingSeconds: _settings.roundDurationSeconds,
+        pausedDuringPreparation: false,
       );
       _startTimer();
 
@@ -163,7 +164,10 @@ class TimerService extends StateNotifier<WorkoutSession> {
       _pausedDuringPreparation = true;
       _audioService.stop();
       _audioService.stopKeepAlive();
-      state = state.copyWith(state: SessionState.paused);
+      state = state.copyWith(
+        state: SessionState.paused,
+        pausedDuringPreparation: true,
+      );
       return;
     }
     if (state.state != SessionState.running) return;
@@ -175,14 +179,20 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _cancelExerciseVoiceTimers();
     _audioService.stop();
     _audioService.stopKeepAlive();
-    state = state.copyWith(state: SessionState.paused);
+    state = state.copyWith(
+      state: SessionState.paused,
+      pausedDuringPreparation: false,
+    );
   }
 
   void resume() {
     if (state.state != SessionState.paused) return;
     if (_pausedDuringPreparation) {
       _pausedDuringPreparation = false;
-      state = state.copyWith(state: SessionState.preparing);
+      state = state.copyWith(
+        state: SessionState.preparing,
+        pausedDuringPreparation: false,
+      );
       _audioService.startKeepAlive();
       _audioService.playCount(
         state.remainingSeconds,
@@ -192,7 +202,10 @@ class TimerService extends StateNotifier<WorkoutSession> {
       _startPrepTimer();
       return;
     }
-    state = state.copyWith(state: SessionState.running);
+    state = state.copyWith(
+      state: SessionState.running,
+      pausedDuringPreparation: false,
+    );
     _audioService.startKeepAlive();
     _startTimer();
   }
@@ -211,14 +224,12 @@ class TimerService extends StateNotifier<WorkoutSession> {
       state = state.copyWith(
         state: SessionState.running,
         remainingSeconds: _settings.roundDurationSeconds,
+        pausedDuringPreparation: false,
       );
       if (state.state == SessionState.running) {
         _audioService.startKeepAlive();
       }
-      _audioService.playCountStart(
-        _settings.savageLevel,
-        _settings.enableMotivationalSound,
-      );
+      _playRoundStartCue();
       if (_settings.enableVibration) _vibrationService.roundStart();
       _startTimer();
 
@@ -292,6 +303,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
   void _resetState() {
     _lastSecondsAlertTriggered = false;
+    _last10SecondsAlertTriggered = false;
     _phaseStartedAt = null;
     _phaseStartedWithSeconds = 0;
 
@@ -301,6 +313,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
       restDurationSeconds: _settings.restDurationSeconds,
       remainingSeconds: _settings.roundDurationSeconds,
       state: SessionState.idle,
+      pausedDuringPreparation: false,
     );
   }
 
@@ -315,7 +328,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
     final newRemaining = state.remainingSeconds - 1;
 
-    // Check for last seconds alert (bell sound + vibration)
+    // Check for last seconds alert sound + vibration.
     if (_settings.enableLastSecondsAlert &&
         !_lastSecondsAlertTriggered &&
         state.phase == SessionPhase.round &&
@@ -324,10 +337,22 @@ class TimerService extends StateNotifier<WorkoutSession> {
       if (_settings.enableVibration) _vibrationService.lastSecondsAlert();
 
       // Cancel scheduled exercise voices and stop any currently playing
-      // so nothing talks over the bell + count_30seconds sequence.
+      // so nothing talks over the count_30seconds announcement.
       _cancelExerciseVoiceTimers();
       _playLastSecondsAlert();
       _scheduleLastSecondsVoice();
+    }
+
+    // Check for last 10 seconds clapping alert.
+    if (_settings.enableLast10SecondsClappingAlert &&
+        !_last10SecondsAlertTriggered &&
+        state.phase == SessionPhase.round &&
+        newRemaining == 10) {
+      _last10SecondsAlertTriggered = true;
+      _audioService.playCount10SecondsWithClapping(
+        _settings.savageLevel,
+        _settings.enableMotivationalSound,
+      );
     }
 
     // Countdown sounds at 3, 2, 1
@@ -346,31 +371,30 @@ class TimerService extends StateNotifier<WorkoutSession> {
     }
   }
 
-  /// Stops any exercise voice then plays 30sec bell followed immediately
-  /// by the level-specific count_30seconds announcement.
+  /// Stops any exercise voice then plays count_30seconds.
   Future<void> _playLastSecondsAlert() async {
     await _audioService.stopVoice();
-    _audioService.play30SecBellThenCount(
+    _audioService.playCount30Seconds(
       _settings.savageLevel,
       _settings.enableMotivationalSound,
     );
   }
 
   /// Schedules one exercise voice during the last 30 seconds, placed after
-  /// the bell+count_30seconds sequence and finishing before the 3-2-1
-  /// countdown. The voice uses the duration-check to avoid overlap.
+  /// count_30seconds and finishing before the 3-2-1 countdown. The voice uses
+  /// the duration-check to avoid overlap.
   void _scheduleLastSecondsVoice() {
     _lastSecondsVoiceTimer?.cancel();
 
     if (!_settings.enableMotivationalSound) return;
 
     final threshold = _settings.lastSecondsThreshold;
-    // Bell+count_30seconds takes ~3s. Schedule voice after that.
+    // count_30seconds takes ~3s. Schedule voice after that.
     // The 3-2-1 countdown starts at remainingSeconds=3, so the voice must
     // finish by then. Pick a random delay between 4s and (threshold - 8)s
     // after the alert fires. The _voiceBufferSeconds (8) covers a voice clip
     // plus 1s margin before the countdown.
-    final minDelay = _bellDurationSeconds + 1; // after bell+count finishes
+    final minDelay = _bellDurationSeconds + 1; // after count_30seconds
     final maxDelay = threshold - _voiceBufferSeconds - _bellDurationSeconds;
 
     if (maxDelay <= minDelay) return; // not enough room
@@ -405,10 +429,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
       if (state.isLastRound) {
         // Workout complete — play count_finish
-        _audioService.playCountFinish(
-          _settings.savageLevel,
-          _settings.enableMotivationalSound,
-        );
+        _playRoundFinishCue();
         _timer?.cancel();
         _audioService.stopKeepAlive();
         if (_settings.enableVibration) _vibrationService.sessionComplete();
@@ -418,14 +439,13 @@ class TimerService extends StateNotifier<WorkoutSession> {
         );
       } else {
         // Start rest period — play count_rest
-        _audioService.playCountRest(
-          _settings.savageLevel,
-          _settings.enableMotivationalSound,
-        );
+        _playRoundEndToRestCue();
         _lastSecondsAlertTriggered = false;
+        _last10SecondsAlertTriggered = false;
         state = state.copyWith(
           phase: SessionPhase.rest,
           remainingSeconds: _settings.restDurationSeconds,
+          pausedDuringPreparation: false,
         );
         _recordPhaseStart();
 
@@ -437,9 +457,13 @@ class TimerService extends StateNotifier<WorkoutSession> {
             () {
               if (state.phase == SessionPhase.rest &&
                   state.state == SessionState.running) {
+                // If 10s clapping alert is enabled, reserve the final 10
+                // seconds so rest voice never overlaps that cue window.
+                final restVoiceDeadlineThreshold =
+                    _settings.enableLast10SecondsClappingAlert ? 10 : 3;
                 _audioService.playRandomRestVoiceIfFits(
                   _settings.savageLevel,
-                  _bellDurationSeconds, // countdown starts at 3,2,1
+                  restVoiceDeadlineThreshold,
                   () => state.remainingSeconds,
                 );
               }
@@ -449,22 +473,48 @@ class TimerService extends StateNotifier<WorkoutSession> {
       }
     } else {
       // Rest ended, start next round — play count_start
-      _audioService.playCountStart(
-        _settings.savageLevel,
-        _settings.enableMotivationalSound,
-      );
+      _playRoundStartCue();
       if (_settings.enableVibration) _vibrationService.restEnd();
       _lastSecondsAlertTriggered = false;
+      _last10SecondsAlertTriggered = false;
       state = state.copyWith(
         phase: SessionPhase.round,
         currentRound: state.currentRound + 1,
         remainingSeconds: _settings.roundDurationSeconds,
+        pausedDuringPreparation: false,
       );
       _recordPhaseStart();
 
       _scheduleStartVoice();
       _scheduleExerciseVoices();
     }
+  }
+
+  /// Round start cue: ring bell_3times and play count_start concurrently.
+  void _playRoundStartCue() {
+    _audioService.playBell3Times();
+    _audioService.playCountStart(
+      _settings.savageLevel,
+      _settings.enableMotivationalSound,
+    );
+  }
+
+  /// Round end cue (non-final): ring bell_1time and play count_rest concurrently.
+  void _playRoundEndToRestCue() {
+    _audioService.playBell1Time();
+    _audioService.playCountRest(
+      _settings.savageLevel,
+      _settings.enableMotivationalSound,
+    );
+  }
+
+  /// Round end cue (final): ring bell_1time and play count_finish concurrently.
+  void _playRoundFinishCue() {
+    _audioService.playBell1Time();
+    _audioService.playCountFinish(
+      _settings.savageLevel,
+      _settings.enableMotivationalSound,
+    );
   }
 
   /// Schedules the start-of-round motivational voice after the bell finishes,

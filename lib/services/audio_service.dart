@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:async';
 
 import 'package:audio_session/audio_session.dart' as audio_session;
 import 'package:audioplayers/audioplayers.dart';
@@ -14,6 +15,7 @@ class AudioService {
   final AudioPlayer _warningPlayer = AudioPlayer();
   final AudioPlayer _voicePlayer = AudioPlayer();
   final AudioPlayer _countPlayer = AudioPlayer();
+  final AudioPlayer _clapPlayer = AudioPlayer();
   final AudioPlayer _keepAlivePlayer = AudioPlayer();
   final FlutterTts _tts = FlutterTts();
 
@@ -93,9 +95,13 @@ class AudioService {
   }
 
   Future<void> play30SecBell() async {
+    await playBell3Times();
+  }
+
+  Future<void> playBell3Times() async {
     try {
       await _warningPlayer.stop();
-      await _warningPlayer.setSource(AssetSource('sounds/30sec_bell.mp3'));
+      await _warningPlayer.setSource(AssetSource('sounds/bell_3times.mp3'));
       await _warningPlayer.resume();
     } catch (e) {
       // Fall back to generic bell
@@ -103,22 +109,22 @@ class AudioService {
     }
   }
 
-  /// Plays 30sec_bell.mp3, waits for it to finish, then immediately plays
-  /// the level-specific count_30seconds.mp3 with no gap.
+  Future<void> playBell1Time() async {
+    try {
+      await _warningPlayer.stop();
+      await _warningPlayer.setSource(AssetSource('sounds/bell_1time.mp3'));
+      await _warningPlayer.resume();
+    } catch (e) {
+      // Fall back to generic bell
+      await playBell();
+    }
+  }
+
+  /// Plays only the level-specific count_30seconds.mp3.
   Future<void> play30SecBellThenCount(
     SavageLevel level,
     bool enableMotivationalSound,
   ) async {
-    try {
-      await _warningPlayer.stop();
-      await _warningPlayer.setSource(AssetSource('sounds/30sec_bell.mp3'));
-      await _warningPlayer.resume();
-      // Wait for the bell to finish playing
-      await _warningPlayer.onPlayerComplete.first;
-    } catch (e) {
-      // Bell failed, continue to count anyway
-    }
-    // Play count_30seconds immediately after bell finishes
     await playCount30Seconds(level, enableMotivationalSound);
   }
 
@@ -393,6 +399,35 @@ class AudioService {
     );
   }
 
+  Future<void> playCount10Seconds(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
+    await _playCountSound(
+      'count_10seconds.mp3',
+      level,
+      enableMotivationalSound,
+    );
+  }
+
+  Future<void> playClapping() async {
+    try {
+      await _clapPlayer.stop();
+      await _clapPlayer.setSource(AssetSource('sounds/clapping.mp3'));
+      await _clapPlayer.resume();
+    } catch (e) {
+      // Clapping sound not available, silently fail
+    }
+  }
+
+  Future<void> playCount10SecondsWithClapping(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
+    unawaited(playClapping());
+    unawaited(playCount10Seconds(level, enableMotivationalSound));
+  }
+
   /// Updates the volume for all audio players and TTS.
   Future<void> setVolume(double volume) async {
     final clamped = volume.clamp(0.0, 1.0);
@@ -400,6 +435,7 @@ class AudioService {
     await _warningPlayer.setVolume(clamped);
     await _voicePlayer.setVolume(clamped);
     await _countPlayer.setVolume(clamped);
+    await _clapPlayer.setVolume(clamped);
     await _tts.setVolume(clamped);
   }
 
@@ -432,6 +468,7 @@ class AudioService {
     await _warningPlayer.stop();
     await _voicePlayer.stop();
     await _countPlayer.stop();
+    await _clapPlayer.stop();
   }
 
   Future<void> dispose() async {
@@ -441,6 +478,7 @@ class AudioService {
     await _warningPlayer.dispose();
     await _voicePlayer.dispose();
     await _countPlayer.dispose();
+    await _clapPlayer.dispose();
     await _keepAlivePlayer.dispose();
   }
 }

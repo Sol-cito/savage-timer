@@ -86,15 +86,24 @@ void main() {
         roundDurationSeconds: 180,
       );
 
-      final mildColors = _getExpectedBackgroundColors(session, SavageLevel.level1);
+      final mildColors = _getExpectedBackgroundColors(
+        session,
+        SavageLevel.level1,
+      );
       expect(mildColors[0], Colors.blue.shade900);
       expect(mildColors[1], Colors.blue.shade700);
 
-      final mediumColors = _getExpectedBackgroundColors(session, SavageLevel.level2);
+      final mediumColors = _getExpectedBackgroundColors(
+        session,
+        SavageLevel.level2,
+      );
       expect(mediumColors[0], Colors.amber.shade900);
       expect(mediumColors[1], Colors.amber.shade700);
 
-      final savageColors = _getExpectedBackgroundColors(session, SavageLevel.level3);
+      final savageColors = _getExpectedBackgroundColors(
+        session,
+        SavageLevel.level3,
+      );
       expect(savageColors[0], Colors.red.shade900);
       expect(savageColors[1], Colors.red.shade700);
     });
@@ -107,15 +116,24 @@ void main() {
         roundDurationSeconds: 180,
       );
 
-      final mildColors = _getExpectedBackgroundColors(session, SavageLevel.level1);
+      final mildColors = _getExpectedBackgroundColors(
+        session,
+        SavageLevel.level1,
+      );
       expect(mildColors[0], Colors.blue.shade900);
       expect(mildColors[1], Colors.orange.shade800);
 
-      final mediumColors = _getExpectedBackgroundColors(session, SavageLevel.level2);
+      final mediumColors = _getExpectedBackgroundColors(
+        session,
+        SavageLevel.level2,
+      );
       expect(mediumColors[0], Colors.amber.shade900);
       expect(mediumColors[1], Colors.orange.shade800);
 
-      final savageColors = _getExpectedBackgroundColors(session, SavageLevel.level3);
+      final savageColors = _getExpectedBackgroundColors(
+        session,
+        SavageLevel.level3,
+      );
       expect(savageColors[0], Colors.red.shade900);
       expect(savageColors[1], Colors.orange.shade800);
     });
@@ -191,6 +209,30 @@ void main() {
         expect(_getExpectedProgressColor(session, level), Colors.white);
       }
     });
+
+    test('pausedDuringPreparation returns grey background for all levels', () {
+      const session = WorkoutSession(
+        state: SessionState.paused,
+        pausedDuringPreparation: true,
+        remainingSeconds: 2,
+      );
+      for (final level in SavageLevel.values) {
+        final colors = _getExpectedBackgroundColors(session, level);
+        expect(colors[0], Colors.grey.shade900);
+        expect(colors[1], Colors.grey.shade800);
+      }
+    });
+
+    test('pausedDuringPreparation returns white progress color', () {
+      const session = WorkoutSession(
+        state: SessionState.paused,
+        pausedDuringPreparation: true,
+        remainingSeconds: 2,
+      );
+      for (final level in SavageLevel.values) {
+        expect(_getExpectedProgressColor(session, level), Colors.white);
+      }
+    });
   });
 
   group('TimerScreen neutral mode (motivational off)', () {
@@ -203,45 +245,47 @@ void main() {
       );
 
       for (final level in SavageLevel.values) {
-        final colors = _getExpectedBackgroundColors(
-          session, level, false,
-        );
+        final colors = _getExpectedBackgroundColors(session, level, false);
         expect(colors[0], Colors.blueGrey.shade900);
         expect(colors[1], Colors.blueGrey.shade700);
       }
     });
 
-    test('background uses blueGrey + orange during last seconds when motivational off', () {
-      const session = WorkoutSession(
-        state: SessionState.running,
-        phase: SessionPhase.round,
-        remainingSeconds: 15,
-        roundDurationSeconds: 180,
-      );
-
-      for (final level in SavageLevel.values) {
-        final colors = _getExpectedBackgroundColors(
-          session, level, false,
+    test(
+      'background uses blueGrey + orange during last seconds when motivational off',
+      () {
+        const session = WorkoutSession(
+          state: SessionState.running,
+          phase: SessionPhase.round,
+          remainingSeconds: 15,
+          roundDurationSeconds: 180,
         );
-        expect(colors[0], Colors.blueGrey.shade900);
-        expect(colors[1], Colors.orange.shade900);
-      }
-    });
 
-    test('idle and completed backgrounds unaffected by motivational toggle', () {
-      const idle = WorkoutSession(state: SessionState.idle);
-      const completed = WorkoutSession(state: SessionState.completed);
+        for (final level in SavageLevel.values) {
+          final colors = _getExpectedBackgroundColors(session, level, false);
+          expect(colors[0], Colors.blueGrey.shade900);
+          expect(colors[1], Colors.orange.shade900);
+        }
+      },
+    );
 
-      for (final level in SavageLevel.values) {
-        final idleOn = _getExpectedBackgroundColors(idle, level, true);
-        final idleOff = _getExpectedBackgroundColors(idle, level, false);
-        expect(idleOn, idleOff);
+    test(
+      'idle and completed backgrounds unaffected by motivational toggle',
+      () {
+        const idle = WorkoutSession(state: SessionState.idle);
+        const completed = WorkoutSession(state: SessionState.completed);
 
-        final compOn = _getExpectedBackgroundColors(completed, level, true);
-        final compOff = _getExpectedBackgroundColors(completed, level, false);
-        expect(compOn, compOff);
-      }
-    });
+        for (final level in SavageLevel.values) {
+          final idleOn = _getExpectedBackgroundColors(idle, level, true);
+          final idleOff = _getExpectedBackgroundColors(idle, level, false);
+          expect(idleOn, idleOff);
+
+          final compOn = _getExpectedBackgroundColors(completed, level, true);
+          final compOff = _getExpectedBackgroundColors(completed, level, false);
+          expect(compOn, compOff);
+        }
+      },
+    );
 
     test('rest background unaffected by motivational toggle', () {
       const session = WorkoutSession(
@@ -274,36 +318,39 @@ void main() {
       }
     });
 
-    test('progress color for completed/rest/lastSeconds unaffected by motivational toggle', () {
-      const completed = WorkoutSession(state: SessionState.completed);
-      const rest = WorkoutSession(
-        state: SessionState.running,
-        phase: SessionPhase.rest,
-        remainingSeconds: 20,
-        restDurationSeconds: 30,
-      );
-      const lastSecs = WorkoutSession(
-        state: SessionState.running,
-        phase: SessionPhase.round,
-        remainingSeconds: 15,
-        roundDurationSeconds: 180,
-      );
+    test(
+      'progress color for completed/rest/lastSeconds unaffected by motivational toggle',
+      () {
+        const completed = WorkoutSession(state: SessionState.completed);
+        const rest = WorkoutSession(
+          state: SessionState.running,
+          phase: SessionPhase.rest,
+          remainingSeconds: 20,
+          restDurationSeconds: 30,
+        );
+        const lastSecs = WorkoutSession(
+          state: SessionState.running,
+          phase: SessionPhase.round,
+          remainingSeconds: 15,
+          roundDurationSeconds: 180,
+        );
 
-      for (final level in SavageLevel.values) {
-        expect(
-          _getExpectedProgressColor(completed, level, false),
-          _getExpectedProgressColor(completed, level, true),
-        );
-        expect(
-          _getExpectedProgressColor(rest, level, false),
-          _getExpectedProgressColor(rest, level, true),
-        );
-        expect(
-          _getExpectedProgressColor(lastSecs, level, false),
-          _getExpectedProgressColor(lastSecs, level, true),
-        );
-      }
-    });
+        for (final level in SavageLevel.values) {
+          expect(
+            _getExpectedProgressColor(completed, level, false),
+            _getExpectedProgressColor(completed, level, true),
+          );
+          expect(
+            _getExpectedProgressColor(rest, level, false),
+            _getExpectedProgressColor(rest, level, true),
+          );
+          expect(
+            _getExpectedProgressColor(lastSecs, level, false),
+            _getExpectedProgressColor(lastSecs, level, true),
+          );
+        }
+      },
+    );
   });
 }
 
@@ -341,7 +388,8 @@ List<Color> _getExpectedBackgroundColors(
     return [Colors.green.shade900, Colors.green.shade700];
   }
   if (session.state == SessionState.idle ||
-      session.state == SessionState.preparing) {
+      session.state == SessionState.preparing ||
+      session.pausedDuringPreparation) {
     return [Colors.grey.shade900, Colors.grey.shade800];
   }
   if (session.isResting) {
@@ -378,7 +426,8 @@ Color _getExpectedProgressColor(
   SavageLevel level, [
   bool motivationalOn = true,
 ]) {
-  if (session.state == SessionState.preparing) {
+  if (session.state == SessionState.preparing ||
+      session.pausedDuringPreparation) {
     return Colors.white;
   }
   if (session.state == SessionState.completed) {

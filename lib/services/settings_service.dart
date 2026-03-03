@@ -51,6 +51,11 @@ class SettingsService extends StateNotifier<TimerSettings> {
     _saveSettings();
   }
 
+  void updateLast10SecondsClappingAlert(bool enabled) {
+    state = state.copyWith(enableLast10SecondsClappingAlert: enabled);
+    _saveSettings();
+  }
+
   void updateLastSecondsThreshold(int seconds) {
     state = state.copyWith(lastSecondsThreshold: seconds);
     _saveSettings();

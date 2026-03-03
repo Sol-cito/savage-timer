@@ -11,6 +11,7 @@ class TimerSettings extends Equatable {
   final int restDurationSeconds;
   final int totalRounds;
   final bool enableLastSecondsAlert;
+  final bool enableLast10SecondsClappingAlert;
   final int lastSecondsThreshold;
   final SavageLevel savageLevel;
   final double volume; // 0.0 = mute, 1.0 = max
@@ -23,6 +24,7 @@ class TimerSettings extends Equatable {
     this.restDurationSeconds = 30,
     this.totalRounds = 3,
     this.enableLastSecondsAlert = true,
+    this.enableLast10SecondsClappingAlert = false,
     this.lastSecondsThreshold = 30,
     this.savageLevel = SavageLevel.level2,
     this.volume = 0.8,
@@ -38,6 +40,7 @@ class TimerSettings extends Equatable {
     int? restDurationSeconds,
     int? totalRounds,
     bool? enableLastSecondsAlert,
+    bool? enableLast10SecondsClappingAlert,
     int? lastSecondsThreshold,
     SavageLevel? savageLevel,
     double? volume,
@@ -51,6 +54,9 @@ class TimerSettings extends Equatable {
       totalRounds: totalRounds ?? this.totalRounds,
       enableLastSecondsAlert:
           enableLastSecondsAlert ?? this.enableLastSecondsAlert,
+      enableLast10SecondsClappingAlert:
+          enableLast10SecondsClappingAlert ??
+          this.enableLast10SecondsClappingAlert,
       lastSecondsThreshold: lastSecondsThreshold ?? this.lastSecondsThreshold,
       savageLevel: savageLevel ?? this.savageLevel,
       volume: volume ?? this.volume,
@@ -67,6 +73,7 @@ class TimerSettings extends Equatable {
       'restDurationSeconds': restDurationSeconds,
       'totalRounds': totalRounds,
       'enableLastSecondsAlert': enableLastSecondsAlert,
+      'enableLast10SecondsClappingAlert': enableLast10SecondsClappingAlert,
       'lastSecondsThreshold': lastSecondsThreshold,
       'savageLevel': savageLevel.index,
       'volume': volume,
@@ -82,11 +89,12 @@ class TimerSettings extends Equatable {
       restDurationSeconds: json['restDurationSeconds'] as int? ?? 30,
       totalRounds: json['totalRounds'] as int? ?? 3,
       enableLastSecondsAlert: json['enableLastSecondsAlert'] as bool? ?? true,
+      enableLast10SecondsClappingAlert:
+          json['enableLast10SecondsClappingAlert'] as bool? ?? false,
       lastSecondsThreshold: json['lastSecondsThreshold'] as int? ?? 30,
       savageLevel: SavageLevel.values[json['savageLevel'] as int? ?? 1],
       volume: (json['volume'] as num?)?.toDouble() ?? 0.8,
-      enableMotivationalSound:
-          json['enableMotivationalSound'] as bool? ?? true,
+      enableMotivationalSound: json['enableMotivationalSound'] as bool? ?? true,
       enableVibration: json['enableVibration'] as bool? ?? true,
       enableKeepScreenOn: json['enableKeepScreenOn'] as bool? ?? true,
     );
@@ -98,6 +106,7 @@ class TimerSettings extends Equatable {
     restDurationSeconds,
     totalRounds,
     enableLastSecondsAlert,
+    enableLast10SecondsClappingAlert,
     lastSecondsThreshold,
     savageLevel,
     volume,
