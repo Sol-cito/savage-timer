@@ -9,6 +9,7 @@ mode="${1:-pull}"
 
 pairs=(
   "AGENTS.md|agents/scopes/root/AGENTS.md"
+  "lib/AGENTS.md|agents/scopes/lib/AGENTS.md"
   "test/AGENTS.md|agents/scopes/test/AGENTS.md"
   "ios/AGENTS.md|agents/scopes/ios/AGENTS.md"
   "android/AGENTS.md|agents/scopes/android/AGENTS.md"

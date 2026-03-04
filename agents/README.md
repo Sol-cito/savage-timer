@@ -9,6 +9,7 @@ This folder is a structured mirror of all live scoped `AGENTS.md` files.
 
 ## Structure
 - `agents/scopes/root/AGENTS.md` mirrors `AGENTS.md`
+- `agents/scopes/lib/AGENTS.md` mirrors `lib/AGENTS.md`
 - `agents/scopes/test/AGENTS.md` mirrors `test/AGENTS.md`
 - `agents/scopes/ios/AGENTS.md` mirrors `ios/AGENTS.md`
 - `agents/scopes/android/AGENTS.md` mirrors `android/AGENTS.md`

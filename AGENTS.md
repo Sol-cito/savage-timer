@@ -39,9 +39,10 @@
 
 ## Subagent Layout
 - This repository uses scoped `AGENTS.md` files as subagents.
-- If a file is under `test/`, `ios/`, `android/`, or `lib/services/`, the matching scoped `AGENTS.md` applies automatically.
+- If a file is under `test/`, `ios/`, `android/`, `lib/`, or `lib/services/`, the matching scoped `AGENTS.md` applies automatically.
 - More deeply nested `AGENTS.md` files override higher-level instructions when they conflict.
 - Current scoped subagents:
+  - `lib/AGENTS.md` -> UI specialist (screens/widgets behavior and interaction guardrails)
   - `test/AGENTS.md` -> test code specialist
   - `ios/AGENTS.md` -> iOS platform specialist
   - `android/AGENTS.md` -> Android platform specialist
