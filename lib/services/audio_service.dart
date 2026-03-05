@@ -374,6 +374,10 @@ class AudioService {
   ) async {
     final folder = _getCountFolder(level, enableMotivationalSound);
     final path = 'sounds/$folder/count/$fileName';
+    await _playCountPath(path);
+  }
+
+  Future<void> _playCountPath(String path) async {
     try {
       await _countPlayer.stop();
       await _countPlayer.setSource(AssetSource(path));
@@ -410,6 +414,16 @@ class AudioService {
     bool enableMotivationalSound,
   ) async {
     await _playCountSound('count_start.mp3', level, enableMotivationalSound);
+  }
+
+  /// Warm-up cue uses the savage count asset so warm-up cue loudness is
+  /// consistent with the current motivational mode and savage level.
+  Future<void> playCountStartWarmUp(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
+    final folder = _getCountFolder(level, enableMotivationalSound);
+    await _playCountPath('sounds/$folder/count/count_start_warmingup.mp3');
   }
 
   Future<void> playCount30Seconds(

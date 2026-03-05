@@ -8,6 +8,8 @@ void main() {
       const settings = TimerSettings();
       expect(settings.enableSeparateRoundDurations, false);
       expect(settings.roundDurationsSeconds, isEmpty);
+      expect(settings.enableWarmUpSet, false);
+      expect(settings.warmUpDurationSeconds, 60);
     });
 
     test('copyWith can enable and set per-round durations', () {
@@ -50,6 +52,38 @@ void main() {
       final restored = TimerSettings.fromJson(json);
       expect(restored.enableSeparateRoundDurations, false);
       expect(restored.roundDurationsSeconds, isEmpty);
+    });
+  });
+
+  group('TimerSettings warm-up set', () {
+    test('copyWith can enable warm-up set and change duration', () {
+      const settings = TimerSettings();
+      final copy = settings.copyWith(
+        enableWarmUpSet: true,
+        warmUpDurationSeconds: 90,
+      );
+      expect(copy.enableWarmUpSet, true);
+      expect(copy.warmUpDurationSeconds, 90);
+    });
+
+    test('toJson includes warm-up fields', () {
+      const settings = TimerSettings(
+        enableWarmUpSet: true,
+        warmUpDurationSeconds: 75,
+      );
+      final json = settings.toJson();
+      expect(json['enableWarmUpSet'], true);
+      expect(json['warmUpDurationSeconds'], 75);
+    });
+
+    test('fromJson defaults warm-up fields when missing', () {
+      final json =
+          const TimerSettings().toJson()
+            ..remove('enableWarmUpSet')
+            ..remove('warmUpDurationSeconds');
+      final restored = TimerSettings.fromJson(json);
+      expect(restored.enableWarmUpSet, false);
+      expect(restored.warmUpDurationSeconds, 60);
     });
   });
 

@@ -163,6 +163,8 @@ void main() {
       service.updateSeparateRoundDurationsEnabled(true);
       service.updateRoundDurationForRound(roundNumber: 2, seconds: 90);
       service.updateRestDuration(45);
+      service.updateWarmUpSetEnabled(true);
+      service.updateWarmUpDuration(90);
       service.updateTotalRounds(6);
       service.updateSavageLevel(SavageLevel.level3);
       service.updateMotivationalSound(false);
@@ -183,6 +185,8 @@ void main() {
         enableSeparateRoundDurations: true,
         roundDurationsSeconds: [120, 90, 150, 90, 120],
         restDurationSeconds: 45,
+        enableWarmUpSet: true,
+        warmUpDurationSeconds: 90,
         totalRounds: 5,
         savageLevel: SavageLevel.level3,
         enableMotivationalSound: false,
@@ -195,6 +199,8 @@ void main() {
       expect(service.state.enableSeparateRoundDurations, true);
       expect(service.state.roundDurationsSeconds, [120, 90, 150, 90, 120]);
       expect(service.state.restDurationSeconds, 45);
+      expect(service.state.enableWarmUpSet, true);
+      expect(service.state.warmUpDurationSeconds, 90);
       expect(service.state.totalRounds, 5);
       expect(service.state.savageLevel, SavageLevel.level3);
       expect(service.state.enableMotivationalSound, false);
@@ -248,5 +254,35 @@ void main() {
         expect(service.state.roundDurationsSeconds, [120, 90]);
       },
     );
+  });
+
+  group('SettingsService warm-up set', () {
+    test('enableWarmUpSet defaults to false', () {
+      final service = SettingsService(prefs);
+      expect(service.state.enableWarmUpSet, false);
+    });
+
+    test('updateWarmUpSetEnabled sets to true', () {
+      final service = SettingsService(prefs);
+      service.updateWarmUpSetEnabled(true);
+      expect(service.state.enableWarmUpSet, true);
+    });
+
+    test('updateWarmUpDuration updates duration seconds', () {
+      final service = SettingsService(prefs);
+      service.updateWarmUpDuration(120);
+      expect(service.state.warmUpDurationSeconds, 120);
+    });
+
+    test('warm-up settings persist across instances', () async {
+      final service1 = SettingsService(prefs);
+      service1.updateWarmUpSetEnabled(true);
+      service1.updateWarmUpDuration(75);
+      await Future<void>.delayed(Duration.zero);
+
+      final service2 = SettingsService(prefs);
+      expect(service2.state.enableWarmUpSet, true);
+      expect(service2.state.warmUpDurationSeconds, 75);
+    });
   });
 }

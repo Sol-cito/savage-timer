@@ -11,6 +11,8 @@ class TimerSettings extends Equatable {
   final bool enableSeparateRoundDurations;
   final List<int> roundDurationsSeconds;
   final int restDurationSeconds;
+  final bool enableWarmUpSet;
+  final int warmUpDurationSeconds;
   final int totalRounds;
   final bool enableLastSecondsAlert;
   final bool enableLast10SecondsClappingAlert;
@@ -26,6 +28,8 @@ class TimerSettings extends Equatable {
     this.enableSeparateRoundDurations = false,
     this.roundDurationsSeconds = const [],
     this.restDurationSeconds = 30,
+    this.enableWarmUpSet = false,
+    this.warmUpDurationSeconds = 60,
     this.totalRounds = 3,
     this.enableLastSecondsAlert = true,
     this.enableLast10SecondsClappingAlert = false,
@@ -64,6 +68,8 @@ class TimerSettings extends Equatable {
     bool? enableSeparateRoundDurations,
     List<int>? roundDurationsSeconds,
     int? restDurationSeconds,
+    bool? enableWarmUpSet,
+    int? warmUpDurationSeconds,
     int? totalRounds,
     bool? enableLastSecondsAlert,
     bool? enableLast10SecondsClappingAlert,
@@ -81,6 +87,9 @@ class TimerSettings extends Equatable {
       roundDurationsSeconds:
           roundDurationsSeconds ?? this.roundDurationsSeconds,
       restDurationSeconds: restDurationSeconds ?? this.restDurationSeconds,
+      enableWarmUpSet: enableWarmUpSet ?? this.enableWarmUpSet,
+      warmUpDurationSeconds:
+          warmUpDurationSeconds ?? this.warmUpDurationSeconds,
       totalRounds: totalRounds ?? this.totalRounds,
       enableLastSecondsAlert:
           enableLastSecondsAlert ?? this.enableLastSecondsAlert,
@@ -103,6 +112,8 @@ class TimerSettings extends Equatable {
       'enableSeparateRoundDurations': enableSeparateRoundDurations,
       'roundDurationsSeconds': roundDurationsSeconds,
       'restDurationSeconds': restDurationSeconds,
+      'enableWarmUpSet': enableWarmUpSet,
+      'warmUpDurationSeconds': warmUpDurationSeconds,
       'totalRounds': totalRounds,
       'enableLastSecondsAlert': enableLastSecondsAlert,
       'enableLast10SecondsClappingAlert': enableLast10SecondsClappingAlert,
@@ -131,6 +142,8 @@ class TimerSettings extends Equatable {
           json['enableSeparateRoundDurations'] as bool? ?? false,
       roundDurationsSeconds: roundDurations,
       restDurationSeconds: json['restDurationSeconds'] as int? ?? 30,
+      enableWarmUpSet: json['enableWarmUpSet'] as bool? ?? false,
+      warmUpDurationSeconds: json['warmUpDurationSeconds'] as int? ?? 60,
       totalRounds: json['totalRounds'] as int? ?? 3,
       enableLastSecondsAlert: json['enableLastSecondsAlert'] as bool? ?? true,
       enableLast10SecondsClappingAlert:
@@ -150,6 +163,8 @@ class TimerSettings extends Equatable {
     enableSeparateRoundDurations,
     roundDurationsSeconds,
     restDurationSeconds,
+    enableWarmUpSet,
+    warmUpDurationSeconds,
     totalRounds,
     enableLastSecondsAlert,
     enableLast10SecondsClappingAlert,

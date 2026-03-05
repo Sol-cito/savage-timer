@@ -22,8 +22,14 @@ class TimerScreen extends ConsumerWidget {
     final hasUpNext = session.nextPhaseLabel != null;
 
     // Scale factor based on screen height (designed for ~852pt)
+    final screenWidth = MediaQuery.sizeOf(context).width;
     final screenHeight = MediaQuery.sizeOf(context).height;
-    final s = (screenHeight / 852).clamp(0.65, 1.0);
+    final compactScale = screenHeight < 620 ? 0.88 : 1.0;
+    final s = ((screenHeight / 852).clamp(0.65, 1.0) * compactScale).clamp(
+      0.55,
+      1.0,
+    );
+    final horizontalPadding = screenWidth < 360 ? 16.0 : 24.0;
 
     return Scaffold(
       body: AnimatedContainer(
@@ -41,7 +47,10 @@ class TimerScreen extends ConsumerWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12 * s),
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: 12 * s,
+            ),
             child: Column(
               children: [
                 // Total duration and elapsed
@@ -69,6 +78,32 @@ class TimerScreen extends ConsumerWidget {
                     letterSpacing: 4,
                   ),
                 ),
+                if (session.isWarmUp) ...[
+                  SizedBox(height: 6 * s),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      'WARM-UP ROUND IN PROGRESS',
+                      style: GoogleFonts.rajdhani(
+                        fontSize: 13 * s + 1,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white.withValues(alpha: 0.92),
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                ],
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
@@ -156,55 +191,62 @@ class TimerScreen extends ConsumerWidget {
     final resetSize = 40 * s + 12;
     final playSize = 56 * s + 18;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Reset button
-        ControlButton(
-          icon: Icons.refresh,
-          onPressed:
-              (isRunning || isPaused || isCompleted)
-                  ? () {
-                    if (isRunning || isPaused) {
-                      _showResetConfirmDialog(context, timerService);
-                    } else {
-                      timerService.reset();
+    final spacing = 18 * s + 2;
+
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Reset button
+          ControlButton(
+            icon: Icons.refresh,
+            onPressed:
+                (isRunning || isPaused || isCompleted)
+                    ? () {
+                      if (isRunning || isPaused) {
+                        _showResetConfirmDialog(context, timerService);
+                      } else {
+                        timerService.reset();
+                      }
                     }
-                  }
-                  : null,
-          backgroundColor: Colors.white.withValues(alpha: 0.2),
-          iconColor: Colors.white,
-          size: resetSize,
-          label: 'Reset',
-        ),
-        SizedBox(width: 24 * s + 4),
-        // Play/Pause button
-        PlayPauseButton(
-          isPlaying: isRunning,
-          showLabel: true,
-          size: playSize,
-          onPressed: () {
-            if (isIdle || isCompleted) {
-              timerService.start();
-            } else if (isRunning) {
-              timerService.pause();
-            } else if (isPaused) {
-              timerService.resume();
-            }
-          },
-        ),
-        SizedBox(width: 24 * s + 4),
-        // Skip button
-        ControlButton(
-          icon: Icons.skip_next,
-          onPressed: (isRunning || isPaused) ? () => timerService.skip() : null,
-          backgroundColor: Colors.white.withValues(alpha: 0.2),
-          iconColor: Colors.white,
-          size: resetSize,
-          label: 'Skip',
-        ),
-      ],
+                    : null,
+            backgroundColor: Colors.white.withValues(alpha: 0.2),
+            iconColor: Colors.white,
+            size: resetSize,
+            label: 'Reset',
+          ),
+          SizedBox(width: spacing),
+          // Play/Pause button
+          PlayPauseButton(
+            isPlaying: isRunning,
+            showLabel: true,
+            size: playSize,
+            onPressed: () {
+              if (isIdle || isCompleted) {
+                timerService.start();
+              } else if (isRunning) {
+                timerService.pause();
+              } else if (isPaused) {
+                timerService.resume();
+              }
+            },
+          ),
+          SizedBox(width: spacing),
+          // Skip button
+          ControlButton(
+            icon: Icons.skip_next,
+            onPressed:
+                (isRunning || isPaused) ? () => timerService.skip() : null,
+            backgroundColor: Colors.white.withValues(alpha: 0.2),
+            iconColor: Colors.white,
+            size: resetSize,
+            label: 'Skip',
+          ),
+        ],
+      ),
     );
   }
 
@@ -250,6 +292,9 @@ class TimerScreen extends ConsumerWidget {
         session.pausedDuringPreparation) {
       return [Colors.grey.shade900, Colors.grey.shade800];
     }
+    if (session.isWarmUp) {
+      return [Colors.deepOrange.shade900, Colors.brown.shade700];
+    }
     if (session.isResting) {
       return [Colors.green.shade900, Colors.teal.shade800];
     }
@@ -292,6 +337,9 @@ class TimerScreen extends ConsumerWidget {
     }
     if (session.state == SessionState.completed) {
       return Colors.green;
+    }
+    if (session.isWarmUp) {
+      return Colors.deepOrangeAccent;
     }
     if (session.isResting) {
       return Colors.green;

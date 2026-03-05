@@ -11,6 +11,8 @@ void main() {
       expect(settings.enableSeparateRoundDurations, false);
       expect(settings.roundDurationsSeconds, isEmpty);
       expect(settings.restDurationSeconds, 30);
+      expect(settings.enableWarmUpSet, false);
+      expect(settings.warmUpDurationSeconds, 60);
       expect(settings.totalRounds, 3);
       expect(settings.enableLastSecondsAlert, true);
       expect(settings.enableLast10SecondsClappingAlert, false);
@@ -48,6 +50,8 @@ void main() {
       expect(settings.enableSeparateRoundDurations, false);
       expect(settings.roundDurationsSeconds, isEmpty);
       expect(settings.restDurationSeconds, 30);
+      expect(settings.enableWarmUpSet, false);
+      expect(settings.warmUpDurationSeconds, 60);
       expect(settings.totalRounds, 3);
       expect(settings.enableLastSecondsAlert, true);
       expect(settings.enableLast10SecondsClappingAlert, false);
@@ -91,6 +95,8 @@ void main() {
         enableSeparateRoundDurations: true,
         roundDurationsSeconds: [120, 90, 150, 90, 120, 90],
         restDurationSeconds: 45,
+        enableWarmUpSet: true,
+        warmUpDurationSeconds: 75,
         totalRounds: 6,
         savageLevel: SavageLevel.level3,
         enableMotivationalSound: false,
@@ -360,6 +366,13 @@ void main() {
         phase: SessionPhase.rest,
       );
       expect(rest.phaseLabel, 'REST');
+
+      const warmUp = WorkoutSession(
+        state: SessionState.running,
+        phase: SessionPhase.warmUp,
+        enableWarmUpSet: true,
+      );
+      expect(warmUp.phaseLabel, 'WARM-UP');
     });
 
     test(
@@ -417,6 +430,24 @@ void main() {
       );
 
       expect(session.nextPhaseDurationSeconds, 90);
+    });
+
+    test('warm-up contributes to total and elapsed durations', () {
+      const session = WorkoutSession(
+        state: SessionState.running,
+        phase: SessionPhase.warmUp,
+        enableWarmUpSet: true,
+        warmUpDurationSeconds: 45,
+        totalRounds: 2,
+        roundDurationSeconds: 60,
+        restDurationSeconds: 30,
+        remainingSeconds: 20,
+      );
+
+      expect(session.totalDurationSeconds, 195);
+      expect(session.elapsedSeconds, 25);
+      expect(session.nextPhaseLabel, 'Round 1');
+      expect(session.nextPhaseDurationSeconds, 60);
     });
   });
 }

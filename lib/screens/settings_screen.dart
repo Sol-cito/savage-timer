@@ -170,6 +170,47 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   _SliderLabels(left: '30s', right: '5 min'),
                 ],
+                const SizedBox(height: 10),
+                Divider(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  height: 1,
+                  thickness: 1,
+                ),
+                const SizedBox(height: 10),
+                _ToggleRow(
+                  label: 'Warm-up Set',
+                  value: settings.enableWarmUpSet,
+                  onChanged: (value) {
+                    _guardTimerChange(context, ref, () {
+                      settingsService.updateWarmUpSetEnabled(value);
+                    });
+                  },
+                ),
+                if (settings.enableWarmUpSet) ...[
+                  Text(
+                    'Runs once before Round 1 so you can ease in and lock your pace.',
+                    style: GoogleFonts.rajdhani(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _NavigationTile(
+                    title: 'Configure Warm-up Set',
+                    subtitle:
+                        'One-time ${_formatDuration(settings.warmUpDurationSeconds)} before Round 1',
+                    onTap: () {
+                      _guardTimerChange(context, ref, () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const WarmUpSetScreen(),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 14),
@@ -617,6 +658,94 @@ class SeparateRoundDurationsScreen extends ConsumerWidget {
               ),
               if (i != settings.totalRounds - 1) const SizedBox(height: 12),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    if (minutes == 0) return '${secs}s';
+    if (secs == 0) return '${minutes}m';
+    return '${minutes}m ${secs}s';
+  }
+}
+
+class WarmUpSetScreen extends ConsumerWidget {
+  const WarmUpSetScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsServiceProvider);
+    final settingsService = ref.read(settingsServiceProvider.notifier);
+
+    return Scaffold(
+      backgroundColor: Colors.grey[900],
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).maybePop(),
+          tooltip: 'Back',
+        ),
+        title: Text(
+          'WARM-UP SET',
+          style: GoogleFonts.oswald(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 2,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          children: [
+            Text(
+              'This one-time warm-up runs before your workout rounds begin.',
+              style: GoogleFonts.rajdhani(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.65),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _SettingsCard(
+              children: [
+                const _SectionHeader(
+                  title: 'WARM-UP DURATION',
+                  icon: Icons.local_fire_department_outlined,
+                ),
+                const SizedBox(height: 8),
+                _ValueDisplay(
+                  value: _formatDuration(settings.warmUpDurationSeconds),
+                ),
+                const SizedBox(height: 4),
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: Colors.white.withValues(alpha: 0.9),
+                    inactiveTrackColor: Colors.white.withValues(alpha: 0.15),
+                    thumbColor: Colors.white,
+                    overlayColor: Colors.white.withValues(alpha: 0.1),
+                    trackHeight: 4,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 8,
+                    ),
+                  ),
+                  child: Slider(
+                    value: settings.warmUpDurationSeconds.toDouble(),
+                    min: 30,
+                    max: 300,
+                    divisions: 54,
+                    onChanged: (value) {
+                      settingsService.updateWarmUpDuration(value.toInt());
+                    },
+                  ),
+                ),
+                const _SliderLabels(left: '30s', right: '5 min'),
+              ],
+            ),
           ],
         ),
       ),

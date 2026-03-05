@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 
 enum SessionState { idle, preparing, running, paused, completed }
 
-enum SessionPhase { round, rest }
+enum SessionPhase { warmUp, round, rest }
 
 class WorkoutSession extends Equatable {
   final int currentRound;
@@ -14,6 +14,8 @@ class WorkoutSession extends Equatable {
   final bool enableSeparateRoundDurations;
   final List<int> roundDurationsSeconds;
   final int restDurationSeconds;
+  final bool enableWarmUpSet;
+  final int warmUpDurationSeconds;
   final bool pausedDuringPreparation;
 
   const WorkoutSession({
@@ -26,10 +28,13 @@ class WorkoutSession extends Equatable {
     this.enableSeparateRoundDurations = false,
     this.roundDurationsSeconds = const [],
     this.restDurationSeconds = 30,
+    this.enableWarmUpSet = false,
+    this.warmUpDurationSeconds = 60,
     this.pausedDuringPreparation = false,
   });
 
   bool get isResting => phase == SessionPhase.rest;
+  bool get isWarmUp => phase == SessionPhase.warmUp;
 
   bool get isLastRound => currentRound == totalRounds;
 
@@ -45,10 +50,11 @@ class WorkoutSession extends Equatable {
 
   double get progress {
     if (state == SessionState.preparing || pausedDuringPreparation) return 0.0;
-    final totalSeconds =
-        phase == SessionPhase.round
-            ? roundDurationForRound(currentRound)
-            : restDurationSeconds;
+    final totalSeconds = switch (phase) {
+      SessionPhase.warmUp => warmUpDurationSeconds,
+      SessionPhase.round => roundDurationForRound(currentRound),
+      SessionPhase.rest => restDurationSeconds,
+    };
     if (totalSeconds == 0) return 0;
     return 1 - (remainingSeconds / totalSeconds);
   }
@@ -65,7 +71,11 @@ class WorkoutSession extends Equatable {
       return 'GET READY';
     }
     if (state == SessionState.completed) return 'DONE';
-    return phase == SessionPhase.round ? 'ROUND $currentRound' : 'REST';
+    return switch (phase) {
+      SessionPhase.warmUp => 'WARM-UP',
+      SessionPhase.round => 'ROUND $currentRound',
+      SessionPhase.rest => 'REST',
+    };
   }
 
   int roundDurationForRound(int roundNumber) {
@@ -91,6 +101,7 @@ class WorkoutSession extends Equatable {
   }
 
   int get totalDurationSeconds =>
+      (enableWarmUpSet ? warmUpDurationSeconds : 0) +
       _sumRoundDurationsThroughRound(totalRounds) +
       (totalRounds - 1) * restDurationSeconds;
 
@@ -107,14 +118,19 @@ class WorkoutSession extends Equatable {
       return 0;
     }
     if (state == SessionState.completed) return totalDurationSeconds;
+    if (phase == SessionPhase.warmUp) {
+      return warmUpDurationSeconds - remainingSeconds;
+    }
     if (phase == SessionPhase.round) {
       final elapsedInCurrentRound =
           roundDurationForRound(currentRound) - remainingSeconds;
-      return _sumRoundDurationsThroughRound(currentRound - 1) +
+      return (enableWarmUpSet ? warmUpDurationSeconds : 0) +
+          _sumRoundDurationsThroughRound(currentRound - 1) +
           (currentRound - 1) * restDurationSeconds +
           elapsedInCurrentRound;
     } else {
-      return _sumRoundDurationsThroughRound(currentRound) +
+      return (enableWarmUpSet ? warmUpDurationSeconds : 0) +
+          _sumRoundDurationsThroughRound(currentRound) +
           (currentRound - 1) * restDurationSeconds +
           (restDurationSeconds - remainingSeconds);
     }
@@ -133,6 +149,9 @@ class WorkoutSession extends Equatable {
         state == SessionState.completed) {
       return null;
     }
+    if (phase == SessionPhase.warmUp) {
+      return 'Round 1';
+    }
     if (phase == SessionPhase.round) {
       return isLastRound ? 'Finish' : 'Rest';
     }
@@ -145,6 +164,9 @@ class WorkoutSession extends Equatable {
         pausedDuringPreparation ||
         state == SessionState.completed) {
       return null;
+    }
+    if (phase == SessionPhase.warmUp) {
+      return roundDurationForRound(1);
     }
     if (phase == SessionPhase.round) {
       return isLastRound ? null : restDurationSeconds;
@@ -170,6 +192,8 @@ class WorkoutSession extends Equatable {
     bool? enableSeparateRoundDurations,
     List<int>? roundDurationsSeconds,
     int? restDurationSeconds,
+    bool? enableWarmUpSet,
+    int? warmUpDurationSeconds,
     bool? pausedDuringPreparation,
   }) {
     return WorkoutSession(
@@ -184,6 +208,9 @@ class WorkoutSession extends Equatable {
       roundDurationsSeconds:
           roundDurationsSeconds ?? this.roundDurationsSeconds,
       restDurationSeconds: restDurationSeconds ?? this.restDurationSeconds,
+      enableWarmUpSet: enableWarmUpSet ?? this.enableWarmUpSet,
+      warmUpDurationSeconds:
+          warmUpDurationSeconds ?? this.warmUpDurationSeconds,
       pausedDuringPreparation:
           pausedDuringPreparation ?? this.pausedDuringPreparation,
     );
@@ -200,6 +227,8 @@ class WorkoutSession extends Equatable {
     enableSeparateRoundDurations,
     roundDurationsSeconds,
     restDurationSeconds,
+    enableWarmUpSet,
+    warmUpDurationSeconds,
     pausedDuringPreparation,
   ];
 }

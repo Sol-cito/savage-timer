@@ -70,6 +70,16 @@ class SettingsService extends StateNotifier<TimerSettings> {
     _saveSettings();
   }
 
+  void updateWarmUpSetEnabled(bool enabled) {
+    state = state.copyWith(enableWarmUpSet: enabled);
+    _saveSettings();
+  }
+
+  void updateWarmUpDuration(int seconds) {
+    state = state.copyWith(warmUpDurationSeconds: seconds);
+    _saveSettings();
+  }
+
   void updateTotalRounds(int rounds) {
     var nextDurations = state.roundDurationsSeconds;
 
