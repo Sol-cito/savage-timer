@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -24,12 +26,17 @@ class TimerScreen extends ConsumerWidget {
     // Scale factor based on screen height (designed for ~852pt)
     final screenWidth = MediaQuery.sizeOf(context).width;
     final screenHeight = MediaQuery.sizeOf(context).height;
-    final compactScale = screenHeight < 620 ? 0.88 : 1.0;
+    final needsDenseCompactLayout =
+        screenHeight < 620 && (hasUpNext || session.isWarmUp);
+    final compactScale =
+        screenHeight < 620 ? (needsDenseCompactLayout ? 0.76 : 0.88) : 1.0;
     final s = ((screenHeight / 852).clamp(0.65, 1.0) * compactScale).clamp(
       0.55,
       1.0,
     );
     final horizontalPadding = screenWidth < 360 ? 16.0 : 24.0;
+    final availableContentWidth = screenWidth - (horizontalPadding * 2);
+    final timerSize = math.min(220 * s + 30, availableContentWidth);
 
     return Scaffold(
       body: AnimatedContainer(
@@ -155,14 +162,17 @@ class TimerScreen extends ConsumerWidget {
                     settings.enableMotivationalSound,
                   ),
                   backgroundColor: Colors.white,
-                  size: 220 * s + 30,
+                  size: timerSize,
                   strokeWidth: 14 * s + 2,
                 ),
                 if (session.nextPhaseLabel != null) ...[
                   SizedBox(height: 14 * s),
-                  UpNextCard(
-                    phaseLabel: session.nextPhaseLabel!,
-                    duration: session.formattedNextPhaseDuration,
+                  SizedBox(
+                    width: timerSize,
+                    child: UpNextCard(
+                      phaseLabel: session.nextPhaseLabel!,
+                      duration: session.formattedNextPhaseDuration,
+                    ),
                   ),
                 ],
                 const Spacer(),

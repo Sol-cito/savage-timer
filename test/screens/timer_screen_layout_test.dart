@@ -12,6 +12,7 @@ import 'package:savage_timer/services/audio_service.dart';
 import 'package:savage_timer/services/settings_service.dart';
 import 'package:savage_timer/services/timer_service.dart';
 import 'package:savage_timer/services/vibration_service.dart';
+import 'package:savage_timer/widgets/circular_timer.dart';
 import 'package:savage_timer/widgets/up_next_card.dart';
 
 class _FakeAudioService extends AudioService {}
@@ -104,7 +105,11 @@ void main() {
       size: const Size(320, 568), // iPhone SE (1st gen)
     );
 
+    final timerWidth = tester.getSize(find.byType(CircularTimer)).width;
+    final upNextWidth = tester.getSize(find.byType(UpNextCard)).width;
+
     expect(find.byType(UpNextCard), findsOneWidget);
+    expect(upNextWidth, closeTo(timerWidth, 0.01));
     expect(tester.takeException(), isNull);
   });
 

@@ -38,6 +38,71 @@ class UpNextCard extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 260;
+              final ultraCompact = constraints.maxWidth < 140;
+
+              if (ultraCompact) {
+                return Row(
+                  children: [
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                      child: Icon(
+                        _phaseIcon,
+                        color: Colors.white.withValues(alpha: 0.9),
+                        size: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'UP NEXT',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.rajdhani(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withValues(alpha: 0.5),
+                              letterSpacing: 1.4,
+                            ),
+                          ),
+                          Text(
+                            phaseLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.rajdhani(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              height: 1.1,
+                            ),
+                          ),
+                          if (duration != null)
+                            Text(
+                              duration!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.rajdhani(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white.withValues(alpha: 0.9),
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }
+
               return Row(
                 children: [
                   Container(
