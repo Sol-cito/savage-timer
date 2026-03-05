@@ -51,10 +51,21 @@ class TimerService extends StateNotifier<WorkoutSession> {
        _preparationSeconds = preparationSeconds,
        super(
          WorkoutSession(
+           phase:
+               settings.enableWarmUpSet
+                   ? SessionPhase.warmUp
+                   : SessionPhase.round,
            totalRounds: settings.totalRounds,
-           roundDurationSeconds: settings.roundDurationSeconds,
+           roundDurationSeconds: settings.roundDurationForRound(1),
+           enableSeparateRoundDurations: settings.enableSeparateRoundDurations,
+           roundDurationsSeconds: settings.roundDurationsSeconds,
            restDurationSeconds: settings.restDurationSeconds,
-           remainingSeconds: settings.roundDurationSeconds,
+           enableWarmUpSet: settings.enableWarmUpSet,
+           warmUpDurationSeconds: settings.warmUpDurationSeconds,
+           remainingSeconds:
+               settings.enableWarmUpSet
+                   ? settings.warmUpDurationSeconds
+                   : settings.roundDurationForRound(1),
          ),
        );
 
@@ -69,13 +80,38 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
     if (state.state == SessionState.idle) {
       state = WorkoutSession(
+        phase:
+            settings.enableWarmUpSet ? SessionPhase.warmUp : SessionPhase.round,
         totalRounds: settings.totalRounds,
-        roundDurationSeconds: settings.roundDurationSeconds,
+        roundDurationSeconds: settings.roundDurationForRound(1),
+        enableSeparateRoundDurations: settings.enableSeparateRoundDurations,
+        roundDurationsSeconds: settings.roundDurationsSeconds,
         restDurationSeconds: settings.restDurationSeconds,
-        remainingSeconds: settings.roundDurationSeconds,
+        enableWarmUpSet: settings.enableWarmUpSet,
+        warmUpDurationSeconds: settings.warmUpDurationSeconds,
+        remainingSeconds:
+            settings.enableWarmUpSet
+                ? settings.warmUpDurationSeconds
+                : settings.roundDurationForRound(1),
         pausedDuringPreparation: false,
       );
     }
+  }
+
+  int _roundDurationForRound(int roundNumber) {
+    return _settings.roundDurationForRound(roundNumber);
+  }
+
+  int _currentRoundDuration() {
+    return _roundDurationForRound(state.currentRound);
+  }
+
+  int _currentPhaseDuration() {
+    return switch (state.phase) {
+      SessionPhase.warmUp => _settings.warmUpDurationSeconds,
+      SessionPhase.round => _currentRoundDuration(),
+      SessionPhase.rest => _settings.restDurationSeconds,
+    };
   }
 
   void start() {
@@ -99,13 +135,17 @@ class TimerService extends StateNotifier<WorkoutSession> {
       // Skip preparation, go straight to running
       state = state.copyWith(
         state: SessionState.running,
+        roundDurationSeconds: _roundDurationForRound(state.currentRound),
+        remainingSeconds: _currentPhaseDuration(),
         pausedDuringPreparation: false,
       );
       _startTimer();
-      _playRoundStartCue();
+      _playStartCueForCurrentPhase();
       if (_settings.enableVibration) _vibrationService.roundStart();
-      _scheduleStartVoice();
-      _scheduleExerciseVoices();
+      if (state.phase == SessionPhase.round) {
+        _scheduleStartVoice();
+        _scheduleExerciseVoices();
+      }
       return;
     }
 
@@ -136,18 +176,20 @@ class TimerService extends StateNotifier<WorkoutSession> {
     if (newRemaining <= 0) {
       // Preparation done — transition to running
       _prepTimer?.cancel();
-      _playRoundStartCue();
+      _playStartCueForCurrentPhase();
       if (_settings.enableVibration) _vibrationService.roundStart();
 
       state = state.copyWith(
         state: SessionState.running,
-        remainingSeconds: _settings.roundDurationSeconds,
+        remainingSeconds: _currentPhaseDuration(),
         pausedDuringPreparation: false,
       );
       _startTimer();
 
-      _scheduleStartVoice();
-      _scheduleExerciseVoices();
+      if (state.phase == SessionPhase.round) {
+        _scheduleStartVoice();
+        _scheduleExerciseVoices();
+      }
     } else {
       _audioService.playCount(
         newRemaining,
@@ -223,18 +265,20 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
       state = state.copyWith(
         state: SessionState.running,
-        remainingSeconds: _settings.roundDurationSeconds,
+        remainingSeconds: _currentPhaseDuration(),
         pausedDuringPreparation: false,
       );
       if (state.state == SessionState.running) {
         _audioService.startKeepAlive();
       }
-      _playRoundStartCue();
+      _playStartCueForCurrentPhase();
       if (_settings.enableVibration) _vibrationService.roundStart();
       _startTimer();
 
-      _scheduleStartVoice();
-      _scheduleExerciseVoices();
+      if (state.phase == SessionPhase.round) {
+        _scheduleStartVoice();
+        _scheduleExerciseVoices();
+      }
       return;
     }
 
@@ -308,10 +352,19 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _phaseStartedWithSeconds = 0;
 
     state = WorkoutSession(
+      phase:
+          _settings.enableWarmUpSet ? SessionPhase.warmUp : SessionPhase.round,
       totalRounds: _settings.totalRounds,
-      roundDurationSeconds: _settings.roundDurationSeconds,
+      roundDurationSeconds: _settings.roundDurationForRound(1),
+      enableSeparateRoundDurations: _settings.enableSeparateRoundDurations,
+      roundDurationsSeconds: _settings.roundDurationsSeconds,
       restDurationSeconds: _settings.restDurationSeconds,
-      remainingSeconds: _settings.roundDurationSeconds,
+      enableWarmUpSet: _settings.enableWarmUpSet,
+      warmUpDurationSeconds: _settings.warmUpDurationSeconds,
+      remainingSeconds:
+          _settings.enableWarmUpSet
+              ? _settings.warmUpDurationSeconds
+              : _settings.roundDurationForRound(1),
       state: SessionState.idle,
       pausedDuringPreparation: false,
     );
@@ -419,6 +472,25 @@ class TimerService extends StateNotifier<WorkoutSession> {
   }
 
   void _handlePhaseEnd() {
+    if (state.phase == SessionPhase.warmUp) {
+      // Warm-up is one-time only, then round 1 starts.
+      _playRoundStartCue();
+      if (_settings.enableVibration) _vibrationService.roundStart();
+      _lastSecondsAlertTriggered = false;
+      _last10SecondsAlertTriggered = false;
+      state = state.copyWith(
+        phase: SessionPhase.round,
+        currentRound: 1,
+        roundDurationSeconds: _roundDurationForRound(1),
+        remainingSeconds: _roundDurationForRound(1),
+        pausedDuringPreparation: false,
+      );
+      _recordPhaseStart();
+      _scheduleStartVoice();
+      _scheduleExerciseVoices();
+      return;
+    }
+
     if (state.phase == SessionPhase.round) {
       // Round ended — cancel any remaining voice timers
       _cancelExerciseVoiceTimers();
@@ -471,23 +543,25 @@ class TimerService extends StateNotifier<WorkoutSession> {
           );
         }
       }
-    } else {
-      // Rest ended, start next round — play count_start
-      _playRoundStartCue();
-      if (_settings.enableVibration) _vibrationService.restEnd();
-      _lastSecondsAlertTriggered = false;
-      _last10SecondsAlertTriggered = false;
-      state = state.copyWith(
-        phase: SessionPhase.round,
-        currentRound: state.currentRound + 1,
-        remainingSeconds: _settings.roundDurationSeconds,
-        pausedDuringPreparation: false,
-      );
-      _recordPhaseStart();
-
-      _scheduleStartVoice();
-      _scheduleExerciseVoices();
+      return;
     }
+
+    // Rest ended, start next round — play count_start
+    _playRoundStartCue();
+    if (_settings.enableVibration) _vibrationService.restEnd();
+    _lastSecondsAlertTriggered = false;
+    _last10SecondsAlertTriggered = false;
+    state = state.copyWith(
+      phase: SessionPhase.round,
+      currentRound: state.currentRound + 1,
+      roundDurationSeconds: _roundDurationForRound(state.currentRound + 1),
+      remainingSeconds: _roundDurationForRound(state.currentRound + 1),
+      pausedDuringPreparation: false,
+    );
+    _recordPhaseStart();
+
+    _scheduleStartVoice();
+    _scheduleExerciseVoices();
   }
 
   /// Round start cue: ring bell_3times and play count_start concurrently.
@@ -497,6 +571,23 @@ class TimerService extends StateNotifier<WorkoutSession> {
       _settings.savageLevel,
       _settings.enableMotivationalSound,
     );
+  }
+
+  /// Warm-up start cue: ring bell_3times and play count_start_warmingup.
+  void _playWarmUpStartCue() {
+    _audioService.playBell3Times();
+    _audioService.playCountStartWarmUp(
+      _settings.savageLevel,
+      _settings.enableMotivationalSound,
+    );
+  }
+
+  void _playStartCueForCurrentPhase() {
+    if (state.phase == SessionPhase.warmUp) {
+      _playWarmUpStartCue();
+      return;
+    }
+    _playRoundStartCue();
   }
 
   /// Round end cue (non-final): ring bell_1time and play count_rest concurrently.
@@ -546,7 +637,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
     if (!_settings.enableMotivationalSound) return;
 
-    final roundDuration = _settings.roundDurationSeconds;
+    final roundDuration = _currentRoundDuration();
     // Leave room for bell + start voice + voice buffer at the start
     final minStartDelay = _bellDurationSeconds + _voiceBufferSeconds;
     // Stop scheduling voices early enough so the last clip finishes before the

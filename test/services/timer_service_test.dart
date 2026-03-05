@@ -162,6 +162,14 @@ class FakeAudioService implements AudioService {
   }
 
   @override
+  Future<void> playCountStartWarmUp(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
+    calls.add('playCountStartWarmUp_${level.name}_$enableMotivationalSound');
+  }
+
+  @override
   Future<void> playCount30Seconds(
     SavageLevel level,
     bool enableMotivationalSound,
@@ -321,6 +329,8 @@ void main() {
     bool enableMotivationalSound = true,
     bool enableLastSecondsAlert = true,
     bool enableLast10SecondsClappingAlert = false,
+    bool enableWarmUpSet = false,
+    int warmUpDuration = 60,
     int lastSecondsThreshold = 30,
     Random? random,
     int preparationSeconds = 0,
@@ -336,12 +346,145 @@ void main() {
         enableMotivationalSound: enableMotivationalSound,
         enableLastSecondsAlert: enableLastSecondsAlert,
         enableLast10SecondsClappingAlert: enableLast10SecondsClappingAlert,
+        enableWarmUpSet: enableWarmUpSet,
+        warmUpDurationSeconds: warmUpDuration,
         lastSecondsThreshold: lastSecondsThreshold,
       ),
       random: random,
       preparationSeconds: preparationSeconds,
     );
   }
+
+  group('TimerService warm-up set', () {
+    test('start enters warm-up phase and plays warm-up start cue once', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          totalRounds: 2,
+          enableWarmUpSet: true,
+          warmUpDuration: 20,
+          preparationSeconds: 0,
+        );
+
+        service.start();
+
+        expect(service.state.state, SessionState.running);
+        expect(service.state.phase, SessionPhase.warmUp);
+        expect(service.state.remainingSeconds, 20);
+        expect(
+          fakeAudio.calls.any(
+            (call) => call.startsWith('playCountStartWarmUp_'),
+          ),
+          isTrue,
+        );
+        expect(fakeAudio.calls, isNot(contains('playCountStart')));
+
+        service.reset();
+        async.elapse(Duration.zero);
+      });
+    });
+
+    test('warm-up completes then starts round 1', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          totalRounds: 2,
+          enableWarmUpSet: true,
+          warmUpDuration: 5,
+          preparationSeconds: 0,
+        );
+
+        service.start();
+        fakeAudio.clearCounters();
+
+        async.elapse(const Duration(seconds: 5));
+
+        expect(service.state.phase, SessionPhase.round);
+        expect(service.state.currentRound, 1);
+        expect(service.state.remainingSeconds, 60);
+        expect(fakeAudio.calls, contains('playCountStart'));
+        expect(
+          fakeAudio.calls.any(
+            (call) => call.startsWith('playCountStartWarmUp_'),
+          ),
+          isFalse,
+        );
+
+        service.reset();
+      });
+    });
+
+    test('skip during warm-up jumps to round 1', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          totalRounds: 2,
+          enableWarmUpSet: true,
+          warmUpDuration: 20,
+          preparationSeconds: 0,
+        );
+
+        service.start();
+        fakeAudio.clearCounters();
+
+        service.skip();
+
+        expect(service.state.phase, SessionPhase.round);
+        expect(service.state.currentRound, 1);
+        expect(service.state.remainingSeconds, 60);
+        expect(fakeAudio.calls, contains('playCountStart'));
+
+        service.reset();
+        async.elapse(Duration.zero);
+      });
+    });
+
+    test('warm-up still plays 3, 2, 1 countdown', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          totalRounds: 1,
+          enableWarmUpSet: true,
+          warmUpDuration: 4,
+          preparationSeconds: 0,
+        );
+
+        service.start();
+        fakeAudio.clearCounters();
+
+        async.elapse(const Duration(seconds: 1));
+        async.elapse(const Duration(seconds: 1));
+        async.elapse(const Duration(seconds: 1));
+
+        expect(fakeAudio.calls, contains('playCount_3'));
+        expect(fakeAudio.calls, contains('playCount_2'));
+        expect(fakeAudio.calls, contains('playCount_1'));
+
+        service.reset();
+      });
+    });
+
+    test('warm-up start cue respects motivational mode and level routing', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          totalRounds: 1,
+          level: SavageLevel.level1,
+          enableMotivationalSound: false,
+          enableWarmUpSet: true,
+          warmUpDuration: 20,
+          preparationSeconds: 0,
+        );
+
+        service.start();
+
+        expect(fakeAudio.calls, contains('playCountStartWarmUp_level1_false'));
+
+        service.reset();
+        async.elapse(Duration.zero);
+      });
+    });
+  });
 
   group('TimerService start voice', () {
     test('plays start voice after bell delay on start', () {
@@ -1476,6 +1619,30 @@ void main() {
       expect(service.state.remainingSeconds, 120);
     });
 
+    test('uses first separate round duration when updating idle state', () {
+      final service = createService(
+        roundDuration: 60,
+        restDuration: 10,
+        totalRounds: 2,
+      );
+
+      service.updateSettings(
+        const TimerSettings(
+          roundDurationSeconds: 180,
+          enableSeparateRoundDurations: true,
+          roundDurationsSeconds: [45, 75, 90],
+          restDurationSeconds: 30,
+          totalRounds: 3,
+        ),
+      );
+
+      expect(service.state.roundDurationSeconds, 45);
+      expect(service.state.remainingSeconds, 45);
+      expect(service.state.enableSeparateRoundDurations, true);
+      expect(service.state.roundDurationsSeconds, [45, 75, 90]);
+      expect(service.state.totalRounds, 3);
+    });
+
     test('does not reset state when running', () {
       fakeAsync((async) {
         final service = createService(
@@ -1492,6 +1659,41 @@ void main() {
         // State should still be running, not reset
         expect(service.state.state, SessionState.running);
         expect(service.state.remainingSeconds, 50); // 60 - 10
+
+        service.reset();
+      });
+    });
+  });
+
+  group('TimerService separate round durations', () {
+    test('advances into next round using its configured duration', () {
+      fakeAsync((async) {
+        final service = TimerService(
+          audioService: fakeAudio,
+          vibrationService: fakeVibration,
+          settings: const TimerSettings(
+            roundDurationSeconds: 60,
+            enableSeparateRoundDurations: true,
+            roundDurationsSeconds: [5, 8],
+            restDurationSeconds: 2,
+            totalRounds: 2,
+          ),
+          preparationSeconds: 0,
+        );
+
+        service.start();
+        expect(service.state.remainingSeconds, 5);
+
+        async.elapse(const Duration(seconds: 5));
+        expect(service.state.phase, SessionPhase.rest);
+        expect(service.state.currentRound, 1);
+        expect(service.state.remainingSeconds, 2);
+
+        async.elapse(const Duration(seconds: 2));
+        expect(service.state.phase, SessionPhase.round);
+        expect(service.state.currentRound, 2);
+        expect(service.state.roundDurationSeconds, 8);
+        expect(service.state.remainingSeconds, 8);
 
         service.reset();
       });

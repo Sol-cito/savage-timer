@@ -78,6 +78,21 @@ void main() {
       }
     });
 
+    test('warm-up state returns distinct deep orange/brown colors', () {
+      const session = WorkoutSession(
+        state: SessionState.running,
+        phase: SessionPhase.warmUp,
+        enableWarmUpSet: true,
+        warmUpDurationSeconds: 60,
+        remainingSeconds: 40,
+      );
+      for (final level in SavageLevel.values) {
+        final colors = _getExpectedBackgroundColors(session, level);
+        expect(colors[0], Colors.deepOrange.shade900);
+        expect(colors[1], Colors.brown.shade700);
+      }
+    });
+
     test('round phase uses level-specific colors', () {
       const session = WorkoutSession(
         state: SessionState.running,
@@ -156,6 +171,22 @@ void main() {
       );
       for (final level in SavageLevel.values) {
         expect(_getExpectedProgressColor(session, level), Colors.green);
+      }
+    });
+
+    test('warm-up returns deep orange accent', () {
+      const session = WorkoutSession(
+        state: SessionState.running,
+        phase: SessionPhase.warmUp,
+        enableWarmUpSet: true,
+        warmUpDurationSeconds: 60,
+        remainingSeconds: 40,
+      );
+      for (final level in SavageLevel.values) {
+        expect(
+          _getExpectedProgressColor(session, level),
+          Colors.deepOrangeAccent,
+        );
       }
     });
 
@@ -392,6 +423,9 @@ List<Color> _getExpectedBackgroundColors(
       session.pausedDuringPreparation) {
     return [Colors.grey.shade900, Colors.grey.shade800];
   }
+  if (session.isWarmUp) {
+    return [Colors.deepOrange.shade900, Colors.brown.shade700];
+  }
   if (session.isResting) {
     return [Colors.green.shade900, Colors.teal.shade800];
   }
@@ -432,6 +466,9 @@ Color _getExpectedProgressColor(
   }
   if (session.state == SessionState.completed) {
     return Colors.green;
+  }
+  if (session.isWarmUp) {
+    return Colors.deepOrangeAccent;
   }
   if (session.isResting) {
     return Colors.green;

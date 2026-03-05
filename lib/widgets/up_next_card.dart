@@ -26,7 +26,7 @@ class UpNextCard extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             color: Colors.white.withValues(alpha: 0.12),
@@ -35,72 +35,150 @@ class UpNextCard extends StatelessWidget {
               width: 1,
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Icon
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.15),
-                ),
-                child: Icon(
-                  _phaseIcon,
-                  color: Colors.white.withValues(alpha: 0.9),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 14),
-              // Labels
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 260;
+              final ultraCompact = constraints.maxWidth < 140;
+
+              if (ultraCompact) {
+                return Row(
+                  children: [
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                      child: Icon(
+                        _phaseIcon,
+                        color: Colors.white.withValues(alpha: 0.9),
+                        size: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'UP NEXT',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.rajdhani(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withValues(alpha: 0.5),
+                              letterSpacing: 1.4,
+                            ),
+                          ),
+                          Text(
+                            phaseLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.rajdhani(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              height: 1.1,
+                            ),
+                          ),
+                          if (duration != null)
+                            Text(
+                              duration!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.rajdhani(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white.withValues(alpha: 0.9),
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              return Row(
                 children: [
-                  Text(
-                    'UP NEXT',
-                    style: GoogleFonts.rajdhani(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white.withValues(alpha: 0.5),
-                      letterSpacing: 2,
+                  Container(
+                    width: compact ? 34 : 40,
+                    height: compact ? 34 : 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.15),
+                    ),
+                    child: Icon(
+                      _phaseIcon,
+                      color: Colors.white.withValues(alpha: 0.9),
+                      size: compact ? 18 : 20,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    phaseLabel,
-                    style: GoogleFonts.rajdhani(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      height: 1.1,
+                  SizedBox(width: compact ? 10 : 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'UP NEXT',
+                          style: GoogleFonts.rajdhani(
+                            fontSize: compact ? 11 : 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withValues(alpha: 0.5),
+                            letterSpacing: 2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          phaseLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.rajdhani(
+                            fontSize: compact ? 18 : 22,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  if (duration != null) ...[
+                    SizedBox(width: compact ? 8 : 14),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: compact ? 70 : 90),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: compact ? 8 : 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.white.withValues(alpha: 0.15),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            duration!,
+                            style: GoogleFonts.rajdhani(
+                              fontSize: compact ? 18 : 22,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ),
-              if (duration != null) ...[
-                const SizedBox(width: 20),
-                // Duration badge
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.white.withValues(alpha: 0.15),
-                  ),
-                  child: Text(
-                    duration!,
-                    style: GoogleFonts.rajdhani(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ),
-              ],
-            ],
+              );
+            },
           ),
         ),
       ),

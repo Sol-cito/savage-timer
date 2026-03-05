@@ -121,26 +121,96 @@ class SettingsScreen extends ConsumerWidget {
                   title: 'ROUND DURATION',
                   icon: Icons.timer_outlined,
                 ),
-                const SizedBox(height: 8),
-                _ValueDisplay(
-                  value: _formatDuration(settings.roundDurationSeconds),
+                const SizedBox(height: 6),
+                _ToggleRow(
+                  label: 'Separate Round Duration',
+                  value: settings.enableSeparateRoundDurations,
+                  onChanged: (value) {
+                    _guardTimerChange(context, ref, () {
+                      settingsService.updateSeparateRoundDurationsEnabled(
+                        value,
+                      );
+                    });
+                  },
                 ),
-                const SizedBox(height: 4),
-                SliderTheme(
-                  data: _sliderTheme(context),
-                  child: Slider(
-                    value: settings.roundDurationSeconds.toDouble(),
-                    min: 30,
-                    max: 300,
-                    divisions: 54,
-                    onChanged: (value) {
+                const SizedBox(height: 8),
+                if (settings.enableSeparateRoundDurations) ...[
+                  _NavigationTile(
+                    title: 'Set Round Durations',
+                    subtitle: '${settings.totalRounds} rounds configured',
+                    onTap: () {
                       _guardTimerChange(context, ref, () {
-                        settingsService.updateRoundDuration(value.toInt());
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder:
+                                (_) => const SeparateRoundDurationsScreen(),
+                          ),
+                        );
                       });
                     },
                   ),
+                ] else ...[
+                  _ValueDisplay(
+                    value: _formatDuration(settings.roundDurationSeconds),
+                  ),
+                  const SizedBox(height: 4),
+                  SliderTheme(
+                    data: _sliderTheme(context),
+                    child: Slider(
+                      value: settings.roundDurationSeconds.toDouble(),
+                      min: 30,
+                      max: 300,
+                      divisions: 54,
+                      onChanged: (value) {
+                        _guardTimerChange(context, ref, () {
+                          settingsService.updateRoundDuration(value.toInt());
+                        });
+                      },
+                    ),
+                  ),
+                  _SliderLabels(left: '30s', right: '5 min'),
+                ],
+                const SizedBox(height: 10),
+                Divider(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  height: 1,
+                  thickness: 1,
                 ),
-                _SliderLabels(left: '30s', right: '5 min'),
+                const SizedBox(height: 10),
+                _ToggleRow(
+                  label: 'Warm-up Set',
+                  value: settings.enableWarmUpSet,
+                  onChanged: (value) {
+                    _guardTimerChange(context, ref, () {
+                      settingsService.updateWarmUpSetEnabled(value);
+                    });
+                  },
+                ),
+                if (settings.enableWarmUpSet) ...[
+                  Text(
+                    'Runs once before Round 1 so you can ease in and lock your pace.',
+                    style: GoogleFonts.rajdhani(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _NavigationTile(
+                    title: 'Configure Warm-up Set',
+                    subtitle:
+                        'One-time ${_formatDuration(settings.warmUpDurationSeconds)} before Round 1',
+                    onTap: () {
+                      _guardTimerChange(context, ref, () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const WarmUpSetScreen(),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 14),
@@ -510,6 +580,187 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
+class SeparateRoundDurationsScreen extends ConsumerWidget {
+  const SeparateRoundDurationsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsServiceProvider);
+    final settingsService = ref.read(settingsServiceProvider.notifier);
+    final roundDurations = settings.resolvedRoundDurationsSeconds;
+
+    return Scaffold(
+      backgroundColor: Colors.grey[900],
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).maybePop(),
+          tooltip: 'Back',
+        ),
+        title: Text(
+          'SEPARATE ROUND DURATION',
+          style: GoogleFonts.oswald(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 2,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          children: [
+            Text(
+              'Set a duration for each round',
+              style: GoogleFonts.rajdhani(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.65),
+              ),
+            ),
+            const SizedBox(height: 14),
+            for (var i = 0; i < settings.totalRounds; i++) ...[
+              _SettingsCard(
+                children: [
+                  _SectionHeader(
+                    title: 'ROUND ${i + 1}',
+                    icon: Icons.timer_outlined,
+                  ),
+                  const SizedBox(height: 8),
+                  _ValueDisplay(value: _formatDuration(roundDurations[i])),
+                  const SizedBox(height: 4),
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      activeTrackColor: Colors.white.withValues(alpha: 0.9),
+                      inactiveTrackColor: Colors.white.withValues(alpha: 0.15),
+                      thumbColor: Colors.white,
+                      overlayColor: Colors.white.withValues(alpha: 0.1),
+                      trackHeight: 4,
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 8,
+                      ),
+                    ),
+                    child: Slider(
+                      value: roundDurations[i].toDouble(),
+                      min: 30,
+                      max: 300,
+                      divisions: 54,
+                      onChanged: (value) {
+                        settingsService.updateRoundDurationForRound(
+                          roundNumber: i + 1,
+                          seconds: value.toInt(),
+                        );
+                      },
+                    ),
+                  ),
+                  const _SliderLabels(left: '30s', right: '5 min'),
+                ],
+              ),
+              if (i != settings.totalRounds - 1) const SizedBox(height: 12),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    if (minutes == 0) return '${secs}s';
+    if (secs == 0) return '${minutes}m';
+    return '${minutes}m ${secs}s';
+  }
+}
+
+class WarmUpSetScreen extends ConsumerWidget {
+  const WarmUpSetScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsServiceProvider);
+    final settingsService = ref.read(settingsServiceProvider.notifier);
+
+    return Scaffold(
+      backgroundColor: Colors.grey[900],
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).maybePop(),
+          tooltip: 'Back',
+        ),
+        title: Text(
+          'WARM-UP SET',
+          style: GoogleFonts.oswald(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 2,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          children: [
+            Text(
+              'This one-time warm-up runs before your workout rounds begin.',
+              style: GoogleFonts.rajdhani(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.65),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _SettingsCard(
+              children: [
+                const _SectionHeader(
+                  title: 'WARM-UP DURATION',
+                  icon: Icons.local_fire_department_outlined,
+                ),
+                const SizedBox(height: 8),
+                _ValueDisplay(
+                  value: _formatDuration(settings.warmUpDurationSeconds),
+                ),
+                const SizedBox(height: 4),
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: Colors.white.withValues(alpha: 0.9),
+                    inactiveTrackColor: Colors.white.withValues(alpha: 0.15),
+                    thumbColor: Colors.white,
+                    overlayColor: Colors.white.withValues(alpha: 0.1),
+                    trackHeight: 4,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 8,
+                    ),
+                  ),
+                  child: Slider(
+                    value: settings.warmUpDurationSeconds.toDouble(),
+                    min: 30,
+                    max: 300,
+                    divisions: 54,
+                    onChanged: (value) {
+                      settingsService.updateWarmUpDuration(value.toInt());
+                    },
+                  ),
+                ),
+                const _SliderLabels(left: '30s', right: '5 min'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    if (minutes == 0) return '${secs}s';
+    if (secs == 0) return '${minutes}m';
+    return '${minutes}m ${secs}s';
+  }
+}
+
 // ── Reusable building blocks ──────────────────────────────────────────────────
 
 class _SettingsCard extends StatelessWidget {
@@ -685,6 +936,76 @@ class _ToggleRow extends StatelessWidget {
             inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NavigationTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _NavigationTile({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.white.withValues(alpha: 0.05),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.rajdhani(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white.withValues(alpha: 0.85),
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.rajdhani(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withValues(alpha: 0.45),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '>',
+                style: GoogleFonts.rajdhani(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

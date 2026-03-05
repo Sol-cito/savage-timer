@@ -3,6 +3,90 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:savage_timer/models/timer_settings.dart';
 
 void main() {
+  group('TimerSettings separate round durations', () {
+    test('defaults to disabled with empty per-round durations', () {
+      const settings = TimerSettings();
+      expect(settings.enableSeparateRoundDurations, false);
+      expect(settings.roundDurationsSeconds, isEmpty);
+      expect(settings.enableWarmUpSet, false);
+      expect(settings.warmUpDurationSeconds, 60);
+    });
+
+    test('copyWith can enable and set per-round durations', () {
+      const settings = TimerSettings();
+      final copy = settings.copyWith(
+        enableSeparateRoundDurations: true,
+        roundDurationsSeconds: [120, 90, 150],
+      );
+      expect(copy.enableSeparateRoundDurations, true);
+      expect(copy.roundDurationsSeconds, [120, 90, 150]);
+    });
+
+    test('toJson includes separate duration fields', () {
+      const settings = TimerSettings(
+        enableSeparateRoundDurations: true,
+        roundDurationsSeconds: [120, 90, 150],
+      );
+      final json = settings.toJson();
+      expect(json.containsKey('enableSeparateRoundDurations'), true);
+      expect(json.containsKey('roundDurationsSeconds'), true);
+      expect(json['enableSeparateRoundDurations'], true);
+      expect(json['roundDurationsSeconds'], [120, 90, 150]);
+    });
+
+    test('fromJson reads separate duration fields', () {
+      const original = TimerSettings(
+        enableSeparateRoundDurations: true,
+        roundDurationsSeconds: [120, 90, 150],
+      );
+      final restored = TimerSettings.fromJson(original.toJson());
+      expect(restored.enableSeparateRoundDurations, true);
+      expect(restored.roundDurationsSeconds, [120, 90, 150]);
+    });
+
+    test('fromJson defaults separate duration fields when missing', () {
+      final json =
+          const TimerSettings().toJson()
+            ..remove('enableSeparateRoundDurations')
+            ..remove('roundDurationsSeconds');
+      final restored = TimerSettings.fromJson(json);
+      expect(restored.enableSeparateRoundDurations, false);
+      expect(restored.roundDurationsSeconds, isEmpty);
+    });
+  });
+
+  group('TimerSettings warm-up set', () {
+    test('copyWith can enable warm-up set and change duration', () {
+      const settings = TimerSettings();
+      final copy = settings.copyWith(
+        enableWarmUpSet: true,
+        warmUpDurationSeconds: 90,
+      );
+      expect(copy.enableWarmUpSet, true);
+      expect(copy.warmUpDurationSeconds, 90);
+    });
+
+    test('toJson includes warm-up fields', () {
+      const settings = TimerSettings(
+        enableWarmUpSet: true,
+        warmUpDurationSeconds: 75,
+      );
+      final json = settings.toJson();
+      expect(json['enableWarmUpSet'], true);
+      expect(json['warmUpDurationSeconds'], 75);
+    });
+
+    test('fromJson defaults warm-up fields when missing', () {
+      final json =
+          const TimerSettings().toJson()
+            ..remove('enableWarmUpSet')
+            ..remove('warmUpDurationSeconds');
+      final restored = TimerSettings.fromJson(json);
+      expect(restored.enableWarmUpSet, false);
+      expect(restored.warmUpDurationSeconds, 60);
+    });
+  });
+
   group('TimerSettings last 10s clapping alert', () {
     test('defaults to false', () {
       const settings = TimerSettings();
