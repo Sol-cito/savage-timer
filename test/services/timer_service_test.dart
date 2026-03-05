@@ -1476,6 +1476,30 @@ void main() {
       expect(service.state.remainingSeconds, 120);
     });
 
+    test('uses first separate round duration when updating idle state', () {
+      final service = createService(
+        roundDuration: 60,
+        restDuration: 10,
+        totalRounds: 2,
+      );
+
+      service.updateSettings(
+        const TimerSettings(
+          roundDurationSeconds: 180,
+          enableSeparateRoundDurations: true,
+          roundDurationsSeconds: [45, 75, 90],
+          restDurationSeconds: 30,
+          totalRounds: 3,
+        ),
+      );
+
+      expect(service.state.roundDurationSeconds, 45);
+      expect(service.state.remainingSeconds, 45);
+      expect(service.state.enableSeparateRoundDurations, true);
+      expect(service.state.roundDurationsSeconds, [45, 75, 90]);
+      expect(service.state.totalRounds, 3);
+    });
+
     test('does not reset state when running', () {
       fakeAsync((async) {
         final service = createService(
@@ -1492,6 +1516,41 @@ void main() {
         // State should still be running, not reset
         expect(service.state.state, SessionState.running);
         expect(service.state.remainingSeconds, 50); // 60 - 10
+
+        service.reset();
+      });
+    });
+  });
+
+  group('TimerService separate round durations', () {
+    test('advances into next round using its configured duration', () {
+      fakeAsync((async) {
+        final service = TimerService(
+          audioService: fakeAudio,
+          vibrationService: fakeVibration,
+          settings: const TimerSettings(
+            roundDurationSeconds: 60,
+            enableSeparateRoundDurations: true,
+            roundDurationsSeconds: [5, 8],
+            restDurationSeconds: 2,
+            totalRounds: 2,
+          ),
+          preparationSeconds: 0,
+        );
+
+        service.start();
+        expect(service.state.remainingSeconds, 5);
+
+        async.elapse(const Duration(seconds: 5));
+        expect(service.state.phase, SessionPhase.rest);
+        expect(service.state.currentRound, 1);
+        expect(service.state.remainingSeconds, 2);
+
+        async.elapse(const Duration(seconds: 2));
+        expect(service.state.phase, SessionPhase.round);
+        expect(service.state.currentRound, 2);
+        expect(service.state.roundDurationSeconds, 8);
+        expect(service.state.remainingSeconds, 8);
 
         service.reset();
       });

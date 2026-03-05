@@ -36,13 +36,62 @@ class SettingsService extends StateNotifier<TimerSettings> {
     _saveSettings();
   }
 
+  void updateSeparateRoundDurationsEnabled(bool enabled) {
+    if (enabled) {
+      state = state.copyWith(
+        enableSeparateRoundDurations: true,
+        roundDurationsSeconds: state.resolvedRoundDurationsSeconds,
+      );
+    } else {
+      state = state.copyWith(enableSeparateRoundDurations: false);
+    }
+    _saveSettings();
+  }
+
+  void updateRoundDurationForRound({
+    required int roundNumber,
+    required int seconds,
+  }) {
+    if (roundNumber <= 0) return;
+
+    final nextDurations = state.resolvedRoundDurationsSeconds;
+    if (roundNumber > nextDurations.length) return;
+
+    nextDurations[roundNumber - 1] = seconds;
+    state = state.copyWith(
+      enableSeparateRoundDurations: true,
+      roundDurationsSeconds: nextDurations,
+    );
+    _saveSettings();
+  }
+
   void updateRestDuration(int seconds) {
     state = state.copyWith(restDurationSeconds: seconds);
     _saveSettings();
   }
 
   void updateTotalRounds(int rounds) {
-    state = state.copyWith(totalRounds: rounds);
+    var nextDurations = state.roundDurationsSeconds;
+
+    if (state.enableSeparateRoundDurations) {
+      final resolved = state.resolvedRoundDurationsSeconds;
+      if (rounds > resolved.length) {
+        nextDurations = <int>[
+          ...resolved,
+          ...List<int>.filled(
+            rounds - resolved.length,
+            state.roundDurationSeconds,
+          ),
+        ];
+      } else {
+        nextDurations = resolved.take(rounds).toList();
+      }
+    }
+
+    state = state.copyWith(
+      totalRounds: rounds,
+      roundDurationsSeconds: nextDurations,
+    );
     _saveSettings();
   }
 

@@ -8,6 +8,8 @@ void main() {
     test('default values are correct', () {
       const settings = TimerSettings();
       expect(settings.roundDurationSeconds, 180);
+      expect(settings.enableSeparateRoundDurations, false);
+      expect(settings.roundDurationsSeconds, isEmpty);
       expect(settings.restDurationSeconds, 30);
       expect(settings.totalRounds, 3);
       expect(settings.enableLastSecondsAlert, true);
@@ -43,6 +45,8 @@ void main() {
     test('fromJson uses defaults when keys are missing', () {
       final settings = TimerSettings.fromJson({});
       expect(settings.roundDurationSeconds, 180);
+      expect(settings.enableSeparateRoundDurations, false);
+      expect(settings.roundDurationsSeconds, isEmpty);
       expect(settings.restDurationSeconds, 30);
       expect(settings.totalRounds, 3);
       expect(settings.enableLastSecondsAlert, true);
@@ -84,6 +88,8 @@ void main() {
     test('JSON round-trip preserves values', () {
       const settings = TimerSettings(
         roundDurationSeconds: 120,
+        enableSeparateRoundDurations: true,
+        roundDurationsSeconds: [120, 90, 150, 90, 120, 90],
         restDurationSeconds: 45,
         totalRounds: 6,
         savageLevel: SavageLevel.level3,
@@ -95,6 +101,30 @@ void main() {
 
       expect(restored, settings);
       expect(restored.enableMotivationalSound, false);
+    });
+
+    test('roundDurationForRound uses per-round durations when enabled', () {
+      const settings = TimerSettings(
+        roundDurationSeconds: 180,
+        enableSeparateRoundDurations: true,
+        roundDurationsSeconds: [120, 90, 150],
+        totalRounds: 3,
+      );
+
+      expect(settings.roundDurationForRound(1), 120);
+      expect(settings.roundDurationForRound(2), 90);
+      expect(settings.roundDurationForRound(3), 150);
+    });
+
+    test('resolvedRoundDurations fills missing rounds with default value', () {
+      const settings = TimerSettings(
+        roundDurationSeconds: 180,
+        enableSeparateRoundDurations: true,
+        roundDurationsSeconds: [120],
+        totalRounds: 3,
+      );
+
+      expect(settings.resolvedRoundDurationsSeconds, [120, 180, 180]);
     });
   });
 
@@ -344,5 +374,49 @@ void main() {
         expect(pausedPrep.preparationCountdown, '2');
       },
     );
+
+    test('totalDurationSeconds uses separate per-round durations', () {
+      const session = WorkoutSession(
+        totalRounds: 3,
+        roundDurationSeconds: 180,
+        enableSeparateRoundDurations: true,
+        roundDurationsSeconds: [120, 90, 150],
+        restDurationSeconds: 30,
+      );
+
+      // 120 + 90 + 150 + (2 * 30) = 420
+      expect(session.totalDurationSeconds, 420);
+    });
+
+    test('elapsedSeconds during variable-duration second round', () {
+      const session = WorkoutSession(
+        state: SessionState.running,
+        phase: SessionPhase.round,
+        currentRound: 2,
+        remainingSeconds: 45,
+        totalRounds: 3,
+        roundDurationSeconds: 180,
+        enableSeparateRoundDurations: true,
+        roundDurationsSeconds: [120, 90, 150],
+        restDurationSeconds: 30,
+      );
+
+      // round1 (120) + rest1 (30) + elapsed in round2 (90-45)
+      expect(session.elapsedSeconds, 195);
+    });
+
+    test('nextPhaseDurationSeconds during rest uses next round duration', () {
+      const session = WorkoutSession(
+        state: SessionState.running,
+        phase: SessionPhase.rest,
+        currentRound: 1,
+        totalRounds: 3,
+        roundDurationSeconds: 180,
+        enableSeparateRoundDurations: true,
+        roundDurationsSeconds: [120, 90, 150],
+      );
+
+      expect(session.nextPhaseDurationSeconds, 90);
+    });
   });
 }

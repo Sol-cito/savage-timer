@@ -52,9 +52,11 @@ class TimerService extends StateNotifier<WorkoutSession> {
        super(
          WorkoutSession(
            totalRounds: settings.totalRounds,
-           roundDurationSeconds: settings.roundDurationSeconds,
+           roundDurationSeconds: settings.roundDurationForRound(1),
+           enableSeparateRoundDurations: settings.enableSeparateRoundDurations,
+           roundDurationsSeconds: settings.roundDurationsSeconds,
            restDurationSeconds: settings.restDurationSeconds,
-           remainingSeconds: settings.roundDurationSeconds,
+           remainingSeconds: settings.roundDurationForRound(1),
          ),
        );
 
@@ -70,12 +72,22 @@ class TimerService extends StateNotifier<WorkoutSession> {
     if (state.state == SessionState.idle) {
       state = WorkoutSession(
         totalRounds: settings.totalRounds,
-        roundDurationSeconds: settings.roundDurationSeconds,
+        roundDurationSeconds: settings.roundDurationForRound(1),
+        enableSeparateRoundDurations: settings.enableSeparateRoundDurations,
+        roundDurationsSeconds: settings.roundDurationsSeconds,
         restDurationSeconds: settings.restDurationSeconds,
-        remainingSeconds: settings.roundDurationSeconds,
+        remainingSeconds: settings.roundDurationForRound(1),
         pausedDuringPreparation: false,
       );
     }
+  }
+
+  int _roundDurationForRound(int roundNumber) {
+    return _settings.roundDurationForRound(roundNumber);
+  }
+
+  int _currentRoundDuration() {
+    return _roundDurationForRound(state.currentRound);
   }
 
   void start() {
@@ -99,6 +111,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
       // Skip preparation, go straight to running
       state = state.copyWith(
         state: SessionState.running,
+        roundDurationSeconds: _currentRoundDuration(),
         pausedDuringPreparation: false,
       );
       _startTimer();
@@ -141,7 +154,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
       state = state.copyWith(
         state: SessionState.running,
-        remainingSeconds: _settings.roundDurationSeconds,
+        remainingSeconds: _currentRoundDuration(),
         pausedDuringPreparation: false,
       );
       _startTimer();
@@ -223,7 +236,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
       state = state.copyWith(
         state: SessionState.running,
-        remainingSeconds: _settings.roundDurationSeconds,
+        remainingSeconds: _currentRoundDuration(),
         pausedDuringPreparation: false,
       );
       if (state.state == SessionState.running) {
@@ -309,9 +322,11 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
     state = WorkoutSession(
       totalRounds: _settings.totalRounds,
-      roundDurationSeconds: _settings.roundDurationSeconds,
+      roundDurationSeconds: _settings.roundDurationForRound(1),
+      enableSeparateRoundDurations: _settings.enableSeparateRoundDurations,
+      roundDurationsSeconds: _settings.roundDurationsSeconds,
       restDurationSeconds: _settings.restDurationSeconds,
-      remainingSeconds: _settings.roundDurationSeconds,
+      remainingSeconds: _settings.roundDurationForRound(1),
       state: SessionState.idle,
       pausedDuringPreparation: false,
     );
@@ -480,7 +495,8 @@ class TimerService extends StateNotifier<WorkoutSession> {
       state = state.copyWith(
         phase: SessionPhase.round,
         currentRound: state.currentRound + 1,
-        remainingSeconds: _settings.roundDurationSeconds,
+        roundDurationSeconds: _roundDurationForRound(state.currentRound + 1),
+        remainingSeconds: _roundDurationForRound(state.currentRound + 1),
         pausedDuringPreparation: false,
       );
       _recordPhaseStart();
@@ -546,7 +562,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
 
     if (!_settings.enableMotivationalSound) return;
 
-    final roundDuration = _settings.roundDurationSeconds;
+    final roundDuration = _currentRoundDuration();
     // Leave room for bell + start voice + voice buffer at the start
     final minStartDelay = _bellDurationSeconds + _voiceBufferSeconds;
     // Stop scheduling voices early enough so the last clip finishes before the

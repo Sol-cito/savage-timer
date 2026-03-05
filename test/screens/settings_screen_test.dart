@@ -139,7 +139,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.dragUntilVisible(
-        find.text('Privacy Policy'),
+        find.text('Terms of Service'),
         find.byType(ListView),
         const Offset(0, -200),
       );
@@ -153,7 +153,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.dragUntilVisible(
-        find.text('Privacy Policy'),
+        find.text('Terms of Service'),
         find.byType(ListView),
         const Offset(0, -200),
       );
@@ -180,7 +180,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.dragUntilVisible(
-        find.text('Privacy Policy'),
+        find.text('Terms of Service'),
         find.byType(ListView),
         const Offset(0, -200),
       );
@@ -469,6 +469,83 @@ void main() {
     });
   });
 
+  group('SettingsScreen separate round duration', () {
+    Finder separateRoundDurationSwitch(WidgetTester tester) {
+      final row =
+          find
+              .ancestor(
+                of: find.text('Separate Round Duration'),
+                matching: find.byType(Row),
+              )
+              .first;
+      return find.descendant(of: row, matching: find.byType(Switch));
+    }
+
+    testWidgets('toggle is visible and off by default', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Separate Round Duration'), findsOneWidget);
+
+      final switchWidget = tester.widget<Switch>(
+        separateRoundDurationSwitch(tester),
+      );
+      expect(switchWidget.value, isFalse);
+    });
+
+    testWidgets('enabling shows round duration setup entry', (tester) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        separateRoundDurationSwitch(tester),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Set Round Durations'), findsOneWidget);
+      expect(find.text('3 rounds configured'), findsOneWidget);
+      expect(find.text('3m'), findsNothing);
+    });
+
+    testWidgets('setup entry opens separate round duration screen', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildSettingsScreen(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        separateRoundDurationSwitch(tester),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Set Round Durations'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('SEPARATE ROUND DURATION'), findsOneWidget);
+      expect(find.text('ROUND 1'), findsOneWidget);
+      expect(find.text('ROUND 2'), findsOneWidget);
+      expect(find.text('ROUND 3'), findsOneWidget);
+    });
+
+    testWidgets('toggle shows confirmation dialog when timer is running', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        separateRoundDurationSwitch(tester),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('TIMER IS RUNNING'), findsOneWidget);
+      expect(find.text('Stop & Change'), findsOneWidget);
+    });
+  });
+
   group('SettingsScreen keep screen on toggle - timer guard dialog', () {
     Future<void> scrollToKeepScreenOnAndTap(WidgetTester tester) async {
       await tester.dragUntilVisible(
@@ -619,7 +696,7 @@ void main() {
 
         await tester.tap(volumeSlider!, warnIfMissed: false);
         await tester.pumpAndSettle();
-        return volumeSlider!;
+        return volumeSlider;
       }
 
       testWidgets('no confirmation dialog when timer is running', (
@@ -755,9 +832,9 @@ void main() {
       final row =
           find
               .ancestor(
-            of: find.text('Last 10s Clapping Alert'),
-            matching: find.byType(Row),
-          )
+                of: find.text('Last 10s Clapping Alert'),
+                matching: find.byType(Row),
+              )
               .first;
       final switchFinder = find.descendant(
         of: row,

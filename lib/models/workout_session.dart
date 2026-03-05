@@ -11,6 +11,8 @@ class WorkoutSession extends Equatable {
   final SessionState state;
   final int totalRounds;
   final int roundDurationSeconds;
+  final bool enableSeparateRoundDurations;
+  final List<int> roundDurationsSeconds;
   final int restDurationSeconds;
   final bool pausedDuringPreparation;
 
@@ -21,6 +23,8 @@ class WorkoutSession extends Equatable {
     this.state = SessionState.idle,
     this.totalRounds = 3,
     this.roundDurationSeconds = 180,
+    this.enableSeparateRoundDurations = false,
+    this.roundDurationsSeconds = const [],
     this.restDurationSeconds = 30,
     this.pausedDuringPreparation = false,
   });
@@ -43,7 +47,7 @@ class WorkoutSession extends Equatable {
     if (state == SessionState.preparing || pausedDuringPreparation) return 0.0;
     final totalSeconds =
         phase == SessionPhase.round
-            ? roundDurationSeconds
+            ? roundDurationForRound(currentRound)
             : restDurationSeconds;
     if (totalSeconds == 0) return 0;
     return 1 - (remainingSeconds / totalSeconds);
@@ -64,8 +68,30 @@ class WorkoutSession extends Equatable {
     return phase == SessionPhase.round ? 'ROUND $currentRound' : 'REST';
   }
 
+  int roundDurationForRound(int roundNumber) {
+    if (roundNumber <= 0) return roundDurationSeconds;
+    final roundIndex = roundNumber - 1;
+    if (enableSeparateRoundDurations &&
+        roundIndex < roundDurationsSeconds.length) {
+      return roundDurationsSeconds[roundIndex];
+    }
+    return roundDurationSeconds;
+  }
+
+  int _sumRoundDurationsThroughRound(int roundNumberInclusive) {
+    if (roundNumberInclusive <= 0) return 0;
+
+    var sum = 0;
+    final upperBound =
+        roundNumberInclusive > totalRounds ? totalRounds : roundNumberInclusive;
+    for (var round = 1; round <= upperBound; round++) {
+      sum += roundDurationForRound(round);
+    }
+    return sum;
+  }
+
   int get totalDurationSeconds =>
-      totalRounds * roundDurationSeconds +
+      _sumRoundDurationsThroughRound(totalRounds) +
       (totalRounds - 1) * restDurationSeconds;
 
   String get formattedTotalDuration {
@@ -82,10 +108,13 @@ class WorkoutSession extends Equatable {
     }
     if (state == SessionState.completed) return totalDurationSeconds;
     if (phase == SessionPhase.round) {
-      return (currentRound - 1) * (roundDurationSeconds + restDurationSeconds) +
-          (roundDurationSeconds - remainingSeconds);
+      final elapsedInCurrentRound =
+          roundDurationForRound(currentRound) - remainingSeconds;
+      return _sumRoundDurationsThroughRound(currentRound - 1) +
+          (currentRound - 1) * restDurationSeconds +
+          elapsedInCurrentRound;
     } else {
-      return currentRound * roundDurationSeconds +
+      return _sumRoundDurationsThroughRound(currentRound) +
           (currentRound - 1) * restDurationSeconds +
           (restDurationSeconds - remainingSeconds);
     }
@@ -120,7 +149,7 @@ class WorkoutSession extends Equatable {
     if (phase == SessionPhase.round) {
       return isLastRound ? null : restDurationSeconds;
     }
-    return roundDurationSeconds;
+    return roundDurationForRound(currentRound + 1);
   }
 
   String? get formattedNextPhaseDuration {
@@ -138,6 +167,8 @@ class WorkoutSession extends Equatable {
     SessionState? state,
     int? totalRounds,
     int? roundDurationSeconds,
+    bool? enableSeparateRoundDurations,
+    List<int>? roundDurationsSeconds,
     int? restDurationSeconds,
     bool? pausedDuringPreparation,
   }) {
@@ -148,6 +179,10 @@ class WorkoutSession extends Equatable {
       state: state ?? this.state,
       totalRounds: totalRounds ?? this.totalRounds,
       roundDurationSeconds: roundDurationSeconds ?? this.roundDurationSeconds,
+      enableSeparateRoundDurations:
+          enableSeparateRoundDurations ?? this.enableSeparateRoundDurations,
+      roundDurationsSeconds:
+          roundDurationsSeconds ?? this.roundDurationsSeconds,
       restDurationSeconds: restDurationSeconds ?? this.restDurationSeconds,
       pausedDuringPreparation:
           pausedDuringPreparation ?? this.pausedDuringPreparation,
@@ -162,6 +197,8 @@ class WorkoutSession extends Equatable {
     state,
     totalRounds,
     roundDurationSeconds,
+    enableSeparateRoundDurations,
+    roundDurationsSeconds,
     restDurationSeconds,
     pausedDuringPreparation,
   ];

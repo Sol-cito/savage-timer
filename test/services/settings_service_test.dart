@@ -160,6 +160,8 @@ void main() {
     test('restores all settings to defaults', () {
       final service = SettingsService(prefs);
       service.updateRoundDuration(120);
+      service.updateSeparateRoundDurationsEnabled(true);
+      service.updateRoundDurationForRound(roundNumber: 2, seconds: 90);
       service.updateRestDuration(45);
       service.updateTotalRounds(6);
       service.updateSavageLevel(SavageLevel.level3);
@@ -178,6 +180,8 @@ void main() {
     test('loads saved settings on construction', () async {
       final settings = const TimerSettings(
         roundDurationSeconds: 120,
+        enableSeparateRoundDurations: true,
+        roundDurationsSeconds: [120, 90, 150, 90, 120],
         restDurationSeconds: 45,
         totalRounds: 5,
         savageLevel: SavageLevel.level3,
@@ -188,6 +192,8 @@ void main() {
 
       final service = SettingsService(prefs);
       expect(service.state.roundDurationSeconds, 120);
+      expect(service.state.enableSeparateRoundDurations, true);
+      expect(service.state.roundDurationsSeconds, [120, 90, 150, 90, 120]);
       expect(service.state.restDurationSeconds, 45);
       expect(service.state.totalRounds, 5);
       expect(service.state.savageLevel, SavageLevel.level3);
@@ -200,5 +206,47 @@ void main() {
       final service = SettingsService(prefs);
       expect(service.state, const TimerSettings());
     });
+  });
+
+  group('SettingsService separate round durations', () {
+    test('enabling seeds per-round durations from default round duration', () {
+      final service = SettingsService(prefs);
+
+      service.updateTotalRounds(4);
+      service.updateRoundDuration(150);
+      service.updateSeparateRoundDurationsEnabled(true);
+
+      expect(service.state.enableSeparateRoundDurations, true);
+      expect(service.state.roundDurationsSeconds, [150, 150, 150, 150]);
+    });
+
+    test('updateRoundDurationForRound updates only target round', () {
+      final service = SettingsService(prefs);
+
+      service.updateTotalRounds(3);
+      service.updateSeparateRoundDurationsEnabled(true);
+      service.updateRoundDurationForRound(roundNumber: 2, seconds: 90);
+
+      expect(service.state.roundDurationsSeconds, [180, 90, 180]);
+    });
+
+    test(
+      'updateTotalRounds expands and truncates per-round durations when enabled',
+      () {
+        final service = SettingsService(prefs);
+
+        service.updateTotalRounds(3);
+        service.updateSeparateRoundDurationsEnabled(true);
+        service.updateRoundDurationForRound(roundNumber: 1, seconds: 120);
+        service.updateRoundDurationForRound(roundNumber: 2, seconds: 90);
+        service.updateRoundDurationForRound(roundNumber: 3, seconds: 150);
+
+        service.updateTotalRounds(5);
+        expect(service.state.roundDurationsSeconds, [120, 90, 150, 180, 180]);
+
+        service.updateTotalRounds(2);
+        expect(service.state.roundDurationsSeconds, [120, 90]);
+      },
+    );
   });
 }

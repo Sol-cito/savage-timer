@@ -8,6 +8,8 @@ enum SavageLevel {
 
 class TimerSettings extends Equatable {
   final int roundDurationSeconds;
+  final bool enableSeparateRoundDurations;
+  final List<int> roundDurationsSeconds;
   final int restDurationSeconds;
   final int totalRounds;
   final bool enableLastSecondsAlert;
@@ -21,6 +23,8 @@ class TimerSettings extends Equatable {
 
   const TimerSettings({
     this.roundDurationSeconds = 180, // 3 minutes
+    this.enableSeparateRoundDurations = false,
+    this.roundDurationsSeconds = const [],
     this.restDurationSeconds = 30,
     this.totalRounds = 3,
     this.enableLastSecondsAlert = true,
@@ -35,8 +39,30 @@ class TimerSettings extends Equatable {
 
   bool get isMuted => volume == 0.0;
 
+  int roundDurationForRound(int roundNumber) {
+    if (roundNumber <= 0) return roundDurationSeconds;
+    final roundIndex = roundNumber - 1;
+    if (enableSeparateRoundDurations &&
+        roundIndex < roundDurationsSeconds.length) {
+      return roundDurationsSeconds[roundIndex];
+    }
+    return roundDurationSeconds;
+  }
+
+  List<int> get resolvedRoundDurationsSeconds {
+    return List<int>.generate(totalRounds, (index) {
+      if (enableSeparateRoundDurations &&
+          index < roundDurationsSeconds.length) {
+        return roundDurationsSeconds[index];
+      }
+      return roundDurationSeconds;
+    });
+  }
+
   TimerSettings copyWith({
     int? roundDurationSeconds,
+    bool? enableSeparateRoundDurations,
+    List<int>? roundDurationsSeconds,
     int? restDurationSeconds,
     int? totalRounds,
     bool? enableLastSecondsAlert,
@@ -50,6 +76,10 @@ class TimerSettings extends Equatable {
   }) {
     return TimerSettings(
       roundDurationSeconds: roundDurationSeconds ?? this.roundDurationSeconds,
+      enableSeparateRoundDurations:
+          enableSeparateRoundDurations ?? this.enableSeparateRoundDurations,
+      roundDurationsSeconds:
+          roundDurationsSeconds ?? this.roundDurationsSeconds,
       restDurationSeconds: restDurationSeconds ?? this.restDurationSeconds,
       totalRounds: totalRounds ?? this.totalRounds,
       enableLastSecondsAlert:
@@ -70,6 +100,8 @@ class TimerSettings extends Equatable {
   Map<String, dynamic> toJson() {
     return {
       'roundDurationSeconds': roundDurationSeconds,
+      'enableSeparateRoundDurations': enableSeparateRoundDurations,
+      'roundDurationsSeconds': roundDurationsSeconds,
       'restDurationSeconds': restDurationSeconds,
       'totalRounds': totalRounds,
       'enableLastSecondsAlert': enableLastSecondsAlert,
@@ -84,8 +116,20 @@ class TimerSettings extends Equatable {
   }
 
   factory TimerSettings.fromJson(Map<String, dynamic> json) {
+    final rawRoundDurations = json['roundDurationsSeconds'];
+    final roundDurations =
+        rawRoundDurations is List
+            ? rawRoundDurations
+                .whereType<num>()
+                .map((value) => value.toInt())
+                .toList()
+            : const <int>[];
+
     return TimerSettings(
       roundDurationSeconds: json['roundDurationSeconds'] as int? ?? 180,
+      enableSeparateRoundDurations:
+          json['enableSeparateRoundDurations'] as bool? ?? false,
+      roundDurationsSeconds: roundDurations,
       restDurationSeconds: json['restDurationSeconds'] as int? ?? 30,
       totalRounds: json['totalRounds'] as int? ?? 3,
       enableLastSecondsAlert: json['enableLastSecondsAlert'] as bool? ?? true,
@@ -103,6 +147,8 @@ class TimerSettings extends Equatable {
   @override
   List<Object?> get props => [
     roundDurationSeconds,
+    enableSeparateRoundDurations,
+    roundDurationsSeconds,
     restDurationSeconds,
     totalRounds,
     enableLastSecondsAlert,
