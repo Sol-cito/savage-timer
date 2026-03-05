@@ -862,7 +862,7 @@ class _NavigationTile extends StatelessWidget {
                 ),
               ),
               Icon(
-                Icons.chevron_right_rounded,
+                Icons.chevron_right,
                 color: Colors.white.withValues(alpha: 0.5),
                 size: 22,
               ),

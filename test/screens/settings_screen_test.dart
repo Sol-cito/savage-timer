@@ -506,6 +506,7 @@ void main() {
       expect(find.text('Set Round Durations'), findsOneWidget);
       expect(find.text('3 rounds configured'), findsOneWidget);
       expect(find.text('3m'), findsNothing);
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     });
 
     testWidgets('setup entry opens separate round duration screen', (
