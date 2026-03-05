@@ -525,6 +525,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('SEPARATE ROUND DURATION'), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back), findsOneWidget);
       expect(find.text('ROUND 1'), findsOneWidget);
       expect(find.text('ROUND 2'), findsOneWidget);
       expect(find.text('ROUND 3'), findsOneWidget);

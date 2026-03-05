@@ -551,6 +551,11 @@ class SeparateRoundDurationsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).maybePop(),
+          tooltip: 'Back',
+        ),
         title: Text(
           'SEPARATE ROUND DURATION',
           style: GoogleFonts.oswald(
