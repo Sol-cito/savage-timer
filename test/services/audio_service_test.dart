@@ -5,17 +5,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:savage_timer/models/timer_settings.dart';
 
 void main() {
+  const languageCode = 'en';
+
   group('AudioService iOS background audio configuration', () {
     test('Info.plist contains UIBackgroundModes with audio', () {
       final plistFile = File('ios/Runner/Info.plist');
-      expect(plistFile.existsSync(), isTrue,
-          reason: 'Info.plist should exist');
+      expect(plistFile.existsSync(), isTrue, reason: 'Info.plist should exist');
 
       final content = plistFile.readAsStringSync();
-      expect(content, contains('UIBackgroundModes'),
-          reason: 'Info.plist must declare UIBackgroundModes');
-      expect(content, contains('<string>audio</string>'),
-          reason: 'UIBackgroundModes must include audio for background playback');
+      expect(
+        content,
+        contains('UIBackgroundModes'),
+        reason: 'Info.plist must declare UIBackgroundModes',
+      );
+      expect(
+        content,
+        contains('<string>audio</string>'),
+        reason: 'UIBackgroundModes must include audio for background playback',
+      );
     });
 
     test('audio_session package is used for AVAudioSession configuration', () {
@@ -23,31 +30,48 @@ void main() {
       expect(sourceFile.existsSync(), isTrue);
 
       final content = sourceFile.readAsStringSync();
-      expect(content, contains("package:audio_session/audio_session.dart"),
-          reason: 'audio_session package must be imported for background audio');
-      expect(content, contains('AVAudioSessionCategory.playback'),
-          reason: 'Audio session must be configured with playback category');
-      expect(content, contains('setActive(true)'),
-          reason: 'Audio session must be activated');
+      expect(
+        content,
+        contains("package:audio_session/audio_session.dart"),
+        reason: 'audio_session package must be imported for background audio',
+      );
+      expect(
+        content,
+        contains('AVAudioSessionCategory.playback'),
+        reason: 'Audio session must be configured with playback category',
+      );
+      expect(
+        content,
+        contains('setActive(true)'),
+        reason: 'Audio session must be activated',
+      );
     });
   });
 
   group('AudioService Android background audio configuration', () {
     test('AndroidManifest.xml contains FOREGROUND_SERVICE permission', () {
-      final manifestFile =
-          File('android/app/src/main/AndroidManifest.xml');
-      expect(manifestFile.existsSync(), isTrue,
-          reason: 'AndroidManifest.xml should exist');
+      final manifestFile = File('android/app/src/main/AndroidManifest.xml');
+      expect(
+        manifestFile.existsSync(),
+        isTrue,
+        reason: 'AndroidManifest.xml should exist',
+      );
 
       final content = manifestFile.readAsStringSync();
-      expect(content, contains('FOREGROUND_SERVICE'),
-          reason:
-              'AndroidManifest must include FOREGROUND_SERVICE for background audio');
-      expect(content, contains('WAKE_LOCK'),
-          reason: 'AndroidManifest must include WAKE_LOCK for background execution');
+      expect(
+        content,
+        contains('FOREGROUND_SERVICE'),
+        reason:
+            'AndroidManifest must include FOREGROUND_SERVICE for background audio',
+      );
+      expect(
+        content,
+        contains('WAKE_LOCK'),
+        reason:
+            'AndroidManifest must include WAKE_LOCK for background execution',
+      );
     });
   });
-
 
   group('AudioService level folder mapping', () {
     test('all SavageLevel values are handled', () {
@@ -74,7 +98,7 @@ void main() {
     test('example path follows expected pattern', () {
       for (final level in SavageLevel.values) {
         final folder = _expectedFolder(level);
-        final prefix = 'assets/sounds/$folder/examples/';
+        final prefix = 'assets/sounds/$languageCode/$folder/examples/';
         expect(prefix, contains(folder));
         expect(prefix, endsWith('/'));
       }
@@ -83,7 +107,7 @@ void main() {
     test('rest path follows expected pattern', () {
       for (final level in SavageLevel.values) {
         final folder = _expectedFolder(level);
-        final prefix = 'assets/sounds/$folder/rest/';
+        final prefix = 'assets/sounds/$languageCode/$folder/rest/';
         expect(prefix, contains(folder));
         expect(prefix, endsWith('/'));
       }
@@ -92,7 +116,7 @@ void main() {
     test('exercise path follows expected pattern', () {
       for (final level in SavageLevel.values) {
         final folder = _expectedFolder(level);
-        final prefix = 'assets/sounds/$folder/exercise/';
+        final prefix = 'assets/sounds/$languageCode/$folder/exercise/';
         expect(prefix, contains(folder));
         expect(prefix, endsWith('/'));
       }
@@ -101,30 +125,30 @@ void main() {
     test('start path follows expected pattern', () {
       for (final level in SavageLevel.values) {
         final folder = _expectedFolder(level);
-        final prefix = 'assets/sounds/$folder/start/';
+        final prefix = 'assets/sounds/$languageCode/$folder/start/';
         expect(prefix, contains(folder));
         expect(prefix, endsWith('/'));
       }
     });
 
     test('asset relative path strips assets/ prefix correctly', () {
-      const fullPath = 'assets/sounds/mild/examples/mild_example_1.mp3';
+      const fullPath = 'assets/sounds/en/mild/examples/mild_example_1.mp3';
       final relativePath = fullPath.replaceFirst('assets/', '');
-      expect(relativePath, 'sounds/mild/examples/mild_example_1.mp3');
+      expect(relativePath, 'sounds/en/mild/examples/mild_example_1.mp3');
       expect(relativePath, isNot(startsWith('assets/')));
     });
 
     test('exercise asset relative path strips prefix correctly', () {
-      const fullPath = 'assets/sounds/savage/exercise/savage_exercise_1.mp3';
+      const fullPath = 'assets/sounds/en/savage/exercise/savage_exercise_1.mp3';
       final relativePath = fullPath.replaceFirst('assets/', '');
-      expect(relativePath, 'sounds/savage/exercise/savage_exercise_1.mp3');
+      expect(relativePath, 'sounds/en/savage/exercise/savage_exercise_1.mp3');
       expect(relativePath, isNot(startsWith('assets/')));
     });
 
     test('start asset relative path strips prefix correctly', () {
-      const fullPath = 'assets/sounds/medium/start/medium_start_1.mp3';
+      const fullPath = 'assets/sounds/en/medium/start/medium_start_1.mp3';
       final relativePath = fullPath.replaceFirst('assets/', '');
-      expect(relativePath, 'sounds/medium/start/medium_start_1.mp3');
+      expect(relativePath, 'sounds/en/medium/start/medium_start_1.mp3');
       expect(relativePath, isNot(startsWith('assets/')));
     });
   });
@@ -134,21 +158,31 @@ void main() {
       final folder = _expectedFolder(level);
 
       test('$folder exercise path is correct', () {
-        expect(_assetPrefix(level, 'exercise'),
-            'assets/sounds/$folder/exercise/');
+        expect(
+          _assetPrefix(level, 'exercise', languageCode: languageCode),
+          'assets/sounds/$languageCode/$folder/exercise/',
+        );
       });
 
       test('$folder rest path is correct', () {
-        expect(_assetPrefix(level, 'rest'), 'assets/sounds/$folder/rest/');
+        expect(
+          _assetPrefix(level, 'rest', languageCode: languageCode),
+          'assets/sounds/$languageCode/$folder/rest/',
+        );
       });
 
       test('$folder start path is correct', () {
-        expect(_assetPrefix(level, 'start'), 'assets/sounds/$folder/start/');
+        expect(
+          _assetPrefix(level, 'start', languageCode: languageCode),
+          'assets/sounds/$languageCode/$folder/start/',
+        );
       });
 
       test('$folder examples path is correct', () {
-        expect(_assetPrefix(level, 'examples'),
-            'assets/sounds/$folder/examples/');
+        expect(
+          _assetPrefix(level, 'examples', languageCode: languageCode),
+          'assets/sounds/$languageCode/$folder/examples/',
+        );
       });
     }
   });
@@ -156,19 +190,31 @@ void main() {
   group('AudioService _full file filtering', () {
     test('_full files would be excluded by the filter logic', () {
       final testFiles = [
-        'assets/sounds/mild/exercise/mild_exercise_full.mp3',
-        'assets/sounds/mild/exercise/mild_exercise_1.mp3',
-        'assets/sounds/mild/exercise/mild_exercise_2.mp3',
+        'assets/sounds/en/mild/exercise/mild_exercise_full.mp3',
+        'assets/sounds/en/mild/exercise/mild_exercise_1.mp3',
+        'assets/sounds/en/mild/exercise/mild_exercise_2.mp3',
       ];
 
-      final filtered = testFiles
-          .where((key) => key.endsWith('.mp3') && !key.contains('_full'))
-          .toList();
+      final filtered =
+          testFiles
+              .where((key) => key.endsWith('.mp3') && !key.contains('_full'))
+              .toList();
 
       expect(filtered, hasLength(2));
-      expect(filtered, isNot(contains('assets/sounds/mild/exercise/mild_exercise_full.mp3')));
-      expect(filtered, contains('assets/sounds/mild/exercise/mild_exercise_1.mp3'));
-      expect(filtered, contains('assets/sounds/mild/exercise/mild_exercise_2.mp3'));
+      expect(
+        filtered,
+        isNot(
+          contains('assets/sounds/en/mild/exercise/mild_exercise_full.mp3'),
+        ),
+      );
+      expect(
+        filtered,
+        contains('assets/sounds/en/mild/exercise/mild_exercise_1.mp3'),
+      );
+      expect(
+        filtered,
+        contains('assets/sounds/en/mild/exercise/mild_exercise_2.mp3'),
+      );
     });
   });
 }
@@ -183,7 +229,11 @@ String _expectedFolder(SavageLevel level) {
 }
 
 /// Builds the expected asset prefix for a given level and subfolder.
-String _assetPrefix(SavageLevel level, String subfolder) {
+String _assetPrefix(
+  SavageLevel level,
+  String subfolder, {
+  required String languageCode,
+}) {
   final folder = _expectedFolder(level);
-  return 'assets/sounds/$folder/$subfolder/';
+  return 'assets/sounds/$languageCode/$folder/$subfolder/';
 }

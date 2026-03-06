@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -20,7 +21,10 @@ class RoundIndicator extends StatelessWidget {
       children: [
         // "Round X of Y" label
         Text(
-          'ROUND $currentRound OF $totalRounds',
+          context.tr(
+            'timer.round_indicator',
+            namedArgs: {'current': '$currentRound', 'total': '$totalRounds'},
+          ),
           style: GoogleFonts.rajdhani(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -44,20 +48,22 @@ class RoundIndicator extends StatelessWidget {
                 height: 6,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(3),
-                  color: isCompleted
-                      ? Colors.white.withValues(alpha: 0.9)
-                      : isCurrent
+                  color:
+                      isCompleted
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : isCurrent
                           ? Colors.white
                           : Colors.white.withValues(alpha: 0.2),
-                  boxShadow: isCurrent
-                      ? [
-                          BoxShadow(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            blurRadius: 8,
-                            spreadRadius: 1,
-                          ),
-                        ]
-                      : null,
+                  boxShadow:
+                      isCurrent
+                          ? [
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                          : null,
                 ),
               ),
             );

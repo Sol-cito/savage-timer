@@ -14,6 +14,7 @@ import 'package:savage_timer/services/timer_service.dart';
 import 'package:savage_timer/services/vibration_service.dart';
 import 'package:savage_timer/widgets/circular_timer.dart';
 import 'package:savage_timer/widgets/up_next_card.dart';
+import '../test_helpers/localization_test_wrapper.dart';
 
 class _FakeAudioService extends AudioService {}
 
@@ -35,13 +36,11 @@ class _FakeVibrationService extends VibrationService {
 }
 
 class _FixedTimerService extends TimerService {
-  _FixedTimerService({
-    required super.settings,
-    required WorkoutSession session,
-  }) : super(
-         audioService: _FakeAudioService(),
-         vibrationService: _FakeVibrationService(),
-       ) {
+  _FixedTimerService({required super.settings, required WorkoutSession session})
+    : super(
+        audioService: _FakeAudioService(),
+        vibrationService: _FakeVibrationService(),
+      ) {
     state = session;
   }
 }
@@ -52,8 +51,9 @@ void main() {
   late SharedPreferences prefs;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
+    await ensureLocalizationInitialized();
     prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
   });
 
   Future<void> pumpTimerScreen(
@@ -66,18 +66,21 @@ void main() {
     await tester.binding.setSurfaceSize(size);
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          timerServiceProvider.overrideWith((ref) {
-            return _FixedTimerService(settings: settings, session: session);
-          }),
-        ],
-        child: const MaterialApp(home: TimerScreen()),
+    await pumpLocalizedWidget(
+      tester,
+      widget: wrapWithLocalization(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            timerServiceProvider.overrideWith((ref) {
+              return _FixedTimerService(settings: settings, session: session);
+            }),
+          ],
+          child: buildLocalizedMaterialApp(home: const TimerScreen()),
+        ),
       ),
+      readyFinder: find.byType(TimerScreen),
     );
-    await tester.pumpAndSettle();
   }
 
   testWidgets('does not overflow on small phone with UpNext visible', (

@@ -1,22 +1,32 @@
 import 'dart:ui';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../utils/session_labels.dart';
+
 class UpNextCard extends StatelessWidget {
+  final UpNextPhaseType phaseType;
   final String phaseLabel;
   final String? duration;
 
   const UpNextCard({
     super.key,
+    required this.phaseType,
     required this.phaseLabel,
     this.duration,
   });
 
   IconData get _phaseIcon {
-    if (phaseLabel == 'Finish') return Icons.emoji_events_rounded;
-    if (phaseLabel.startsWith('Round')) return Icons.fitness_center_rounded;
-    return Icons.self_improvement_rounded; // Rest
+    switch (phaseType) {
+      case UpNextPhaseType.finish:
+        return Icons.emoji_events_rounded;
+      case UpNextPhaseType.round:
+        return Icons.fitness_center_rounded;
+      case UpNextPhaseType.rest:
+        return Icons.self_improvement_rounded;
+    }
   }
 
   @override
@@ -63,7 +73,7 @@ class UpNextCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'UP NEXT',
+                            context.tr('timer.up_next.label'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.rajdhani(
@@ -125,7 +135,7 @@ class UpNextCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'UP NEXT',
+                          context.tr('timer.up_next.label'),
                           style: GoogleFonts.rajdhani(
                             fontSize: compact ? 11 : 12,
                             fontWeight: FontWeight.w600,

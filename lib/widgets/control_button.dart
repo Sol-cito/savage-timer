@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 class ControlButton extends StatelessWidget {
@@ -63,15 +64,22 @@ class ControlButton extends StatelessWidget {
       children: [
         button,
         const SizedBox(height: 8),
-        Text(
-          label!,
-          style: TextStyle(
-            color:
-                onPressed != null
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.5),
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
+        SizedBox(
+          height: 24,
+          child: Text(
+            label!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color:
+                  onPressed != null
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.5),
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -101,7 +109,12 @@ class PlayPauseButton extends StatelessWidget {
       backgroundColor: isPlaying ? Colors.orange : Colors.green,
       iconColor: Colors.white,
       size: size,
-      label: showLabel ? (isPlaying ? 'Pause' : 'Start') : null,
+      label:
+          showLabel
+              ? (isPlaying
+                  ? context.tr('timer.control.pause')
+                  : context.tr('timer.control.start'))
+              : null,
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,18 +11,26 @@ import 'services/audio_service.dart';
 import 'services/notification_service.dart';
 import 'services/settings_service.dart';
 import 'services/timer_service.dart';
+import 'utils/app_locales.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
 
   final sharedPreferences = await SharedPreferences.getInstance();
 
   runApp(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
-      ],
-      child: const SavageTimerApp(),
+    EasyLocalization(
+      supportedLocales: kSupportedLocales,
+      path: 'assets/translations',
+      fallbackLocale: kFallbackLocale,
+      useOnlyLangCode: true,
+      child: ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+        ],
+        child: const SavageTimerApp(),
+      ),
     ),
   );
 }
@@ -35,11 +44,24 @@ class SavageTimerApp extends ConsumerStatefulWidget {
 
 class _SavageTimerAppState extends ConsumerState<SavageTimerApp>
     with WidgetsBindingObserver {
+  String? _lastAudioLanguageCode;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initializeServices();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final languageCode = context.locale.languageCode;
+    if (languageCode == _lastAudioLanguageCode) {
+      return;
+    }
+    _lastAudioLanguageCode = languageCode;
+    ref.read(audioServiceProvider).setVoiceLanguage(languageCode);
   }
 
   @override
@@ -85,8 +107,11 @@ class _SavageTimerAppState extends ConsumerState<SavageTimerApp>
     });
 
     return MaterialApp(
-      title: 'Savage Timer',
+      title: 'app.title'.tr(),
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
       theme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.red,
@@ -134,11 +159,14 @@ class _MainScreenState extends State<MainScreen> {
         backgroundColor: Colors.grey[900],
         selectedItemColor: Colors.red,
         unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.timer), label: 'Timer'),
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: const Icon(Icons.timer),
+            label: context.tr('app.tab.timer'),
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.settings),
+            label: context.tr('app.tab.settings'),
           ),
         ],
       ),

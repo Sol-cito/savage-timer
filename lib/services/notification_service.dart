@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,8 +9,8 @@ import '../models/workout_session.dart';
 class NotificationService {
   static const _notificationId = 1;
   static const _channelId = 'savage_timer_timer';
-  static const _channelName = 'Timer';
-  static const _channelDescription = 'Savage Timer workout progress';
+  static const _defaultChannelName = 'Timer';
+  static const _defaultChannelDescription = 'Savage Timer workout progress';
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
@@ -30,12 +31,13 @@ class NotificationService {
 
     await _plugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(
-          const AndroidNotificationChannel(
+          AndroidNotificationChannel(
             _channelId,
-            _channelName,
-            description: _channelDescription,
+            _defaultChannelName,
+            description: _defaultChannelDescription,
             importance: Importance.low,
             playSound: false,
             enableVibration: false,
@@ -43,7 +45,8 @@ class NotificationService {
         );
     await _plugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.requestNotificationsPermission();
   }
 
@@ -69,15 +72,24 @@ class NotificationService {
     String body;
 
     if (isCompleted) {
-      title = 'Workout Complete!';
-      body = 'Great work! All rounds finished.';
+      title = 'notification.workout_complete_title'.tr();
+      body = 'notification.workout_complete_body'.tr();
     } else if (session.state == SessionState.paused) {
-      title = 'Savage Timer — Paused';
-      body = '${session.phaseLabel} · ${session.formattedTime} remaining';
+      final phase = _localizedPhaseLabel(session);
+      title = 'notification.paused_title'.tr();
+      body = 'notification.paused_body'.tr(
+        namedArgs: {'phase': phase, 'time': session.formattedTime},
+      );
     } else {
-      title = 'Savage Timer — ${session.phaseLabel}';
-      body =
-          'Round ${session.currentRound}/${session.totalRounds} · ${session.formattedTime}';
+      final phase = _localizedPhaseLabel(session);
+      title = 'notification.running_title'.tr(namedArgs: {'phase': phase});
+      body = 'notification.running_body'.tr(
+        namedArgs: {
+          'current': '${session.currentRound}',
+          'total': '${session.totalRounds}',
+          'time': session.formattedTime,
+        },
+      );
     }
 
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -86,8 +98,8 @@ class NotificationService {
 
     final androidDetails = AndroidNotificationDetails(
       _channelId,
-      _channelName,
-      channelDescription: _channelDescription,
+      _defaultChannelName,
+      channelDescription: _defaultChannelDescription,
       importance: Importance.low,
       priority: Priority.low,
       ongoing: !isCompleted,
@@ -114,6 +126,32 @@ class NotificationService {
       Future.delayed(const Duration(seconds: 3), () {
         _plugin.cancel(_notificationId);
       });
+    }
+  }
+
+  String _localizedPhaseLabel(WorkoutSession session) {
+    if (session.state == SessionState.idle) {
+      return 'timer.phase.ready'.tr();
+    }
+
+    if (session.state == SessionState.preparing ||
+        session.pausedDuringPreparation) {
+      return 'timer.phase.get_ready'.tr();
+    }
+
+    if (session.state == SessionState.completed) {
+      return 'timer.phase.done'.tr();
+    }
+
+    switch (session.phase) {
+      case SessionPhase.warmUp:
+        return 'timer.phase.warm_up'.tr();
+      case SessionPhase.round:
+        return 'timer.phase.round'.tr(
+          namedArgs: {'round': '${session.currentRound}'},
+        );
+      case SessionPhase.rest:
+        return 'timer.phase.rest'.tr();
     }
   }
 }

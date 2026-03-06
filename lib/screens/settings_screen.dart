@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,6 +10,7 @@ import '../models/workout_session.dart';
 import '../services/audio_service.dart';
 import '../services/settings_service.dart';
 import '../services/timer_service.dart';
+import '../utils/app_locales.dart';
 import '../widgets/savage_level_selector.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -43,7 +45,7 @@ class SettingsScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(16),
             ),
             title: Text(
-              'TIMER IS RUNNING',
+              context.tr('settings.guard.title'),
               style: GoogleFonts.oswald(
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
@@ -52,7 +54,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             content: Text(
-              'Changing this setting will stop the current timer. Continue?',
+              context.tr('settings.guard.content'),
               style: GoogleFonts.rajdhani(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -63,7 +65,7 @@ class SettingsScreen extends ConsumerWidget {
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text(
-                  'Cancel',
+                  context.tr('common.cancel'),
                   style: GoogleFonts.rajdhani(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -78,7 +80,7 @@ class SettingsScreen extends ConsumerWidget {
                   onChange();
                 },
                 child: Text(
-                  'Stop & Change',
+                  context.tr('settings.guard.confirm'),
                   style: GoogleFonts.rajdhani(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -104,7 +106,7 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             // Header
             Text(
-              'SETTINGS',
+              context.tr('settings.header'),
               style: GoogleFonts.oswald(
                 fontSize: 32,
                 fontWeight: FontWeight.w700,
@@ -118,12 +120,12 @@ class SettingsScreen extends ConsumerWidget {
             _SettingsCard(
               children: [
                 _SectionHeader(
-                  title: 'ROUND DURATION',
+                  title: context.tr('settings.section.round_duration'),
                   icon: Icons.timer_outlined,
                 ),
                 const SizedBox(height: 6),
                 _ToggleRow(
-                  label: 'Separate Round Duration',
+                  label: context.tr('settings.label.separate_round_duration'),
                   value: settings.enableSeparateRoundDurations,
                   onChanged: (value) {
                     _guardTimerChange(context, ref, () {
@@ -136,8 +138,11 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 if (settings.enableSeparateRoundDurations) ...[
                   _NavigationTile(
-                    title: 'Set Round Durations',
-                    subtitle: '${settings.totalRounds} rounds configured',
+                    title: context.tr('settings.action.set_round_durations'),
+                    subtitle: context.tr(
+                      'settings.value.rounds_configured',
+                      namedArgs: {'rounds': '${settings.totalRounds}'},
+                    ),
                     onTap: () {
                       _guardTimerChange(context, ref, () {
                         Navigator.of(context).push(
@@ -151,7 +156,10 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ] else ...[
                   _ValueDisplay(
-                    value: _formatDuration(settings.roundDurationSeconds),
+                    value: _formatDuration(
+                      context,
+                      settings.roundDurationSeconds,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   SliderTheme(
@@ -168,7 +176,10 @@ class SettingsScreen extends ConsumerWidget {
                       },
                     ),
                   ),
-                  _SliderLabels(left: '30s', right: '5 min'),
+                  _SliderLabels(
+                    left: context.tr('settings.slider.min_30s'),
+                    right: context.tr('settings.slider.max_5_min'),
+                  ),
                 ],
                 const SizedBox(height: 10),
                 Divider(
@@ -178,7 +189,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 10),
                 _ToggleRow(
-                  label: 'Warm-up Set',
+                  label: context.tr('settings.label.warm_up_set'),
                   value: settings.enableWarmUpSet,
                   onChanged: (value) {
                     _guardTimerChange(context, ref, () {
@@ -188,7 +199,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 if (settings.enableWarmUpSet) ...[
                   Text(
-                    'Runs once before Round 1 so you can ease in and lock your pace.',
+                    context.tr('settings.hint.warm_up'),
                     style: GoogleFonts.rajdhani(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -197,9 +208,17 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   _NavigationTile(
-                    title: 'Configure Warm-up Set',
-                    subtitle:
-                        'One-time ${_formatDuration(settings.warmUpDurationSeconds)} before Round 1',
+                    title: context.tr('settings.action.configure_warm_up_set'),
+                    subtitle: context.tr(
+                      'settings.value.one_time_before_round',
+                      namedArgs: {
+                        'duration': _formatDuration(
+                          context,
+                          settings.warmUpDurationSeconds,
+                        ),
+                        'round': '1',
+                      },
+                    ),
                     onTap: () {
                       _guardTimerChange(context, ref, () {
                         Navigator.of(context).push(
@@ -219,11 +238,14 @@ class SettingsScreen extends ConsumerWidget {
             _SettingsCard(
               children: [
                 _SectionHeader(
-                  title: 'REST DURATION',
+                  title: context.tr('settings.section.rest_duration'),
                   icon: Icons.self_improvement_outlined,
                 ),
                 const SizedBox(height: 8),
-                _ValueDisplay(value: '${settings.restDurationSeconds}s'),
+                _ValueDisplay(
+                  value:
+                      '${settings.restDurationSeconds}${context.tr('common.seconds_short')}',
+                ),
                 const SizedBox(height: 4),
                 SliderTheme(
                   data: _sliderTheme(context),
@@ -239,7 +261,10 @@ class SettingsScreen extends ConsumerWidget {
                     },
                   ),
                 ),
-                _SliderLabels(left: '10s', right: '60s'),
+                _SliderLabels(
+                  left: context.tr('settings.slider.min_10s'),
+                  right: context.tr('settings.slider.max_60s'),
+                ),
               ],
             ),
             const SizedBox(height: 14),
@@ -248,7 +273,7 @@ class SettingsScreen extends ConsumerWidget {
             _SettingsCard(
               children: [
                 _SectionHeader(
-                  title: 'TOTAL ROUNDS',
+                  title: context.tr('settings.section.total_rounds'),
                   icon: Icons.repeat_rounded,
                 ),
                 const SizedBox(height: 12),
@@ -293,7 +318,10 @@ class SettingsScreen extends ConsumerWidget {
             // Audio section
             _SettingsCard(
               children: [
-                _SectionHeader(title: 'AUDIO', icon: Icons.volume_up_outlined),
+                _SectionHeader(
+                  title: context.tr('settings.section.audio'),
+                  icon: Icons.volume_up_outlined,
+                ),
                 const SizedBox(height: 14),
 
                 // Volume
@@ -325,7 +353,7 @@ class SettingsScreen extends ConsumerWidget {
                       width: 48,
                       child: Text(
                         settings.isMuted
-                            ? 'OFF'
+                            ? context.tr('common.off')
                             : '${(settings.volume * 100).round()}%',
                         textAlign: TextAlign.right,
                         style: GoogleFonts.rajdhani(
@@ -341,7 +369,7 @@ class SettingsScreen extends ConsumerWidget {
 
                 // Motivational Sound toggle
                 _ToggleRow(
-                  label: 'Motivational Voice',
+                  label: context.tr('settings.label.motivational_voice'),
                   value: settings.enableMotivationalSound,
                   onChanged: (value) {
                     _guardTimerChange(context, ref, () {
@@ -352,7 +380,7 @@ class SettingsScreen extends ConsumerWidget {
 
                 // Last 30s Voice Alert toggle
                 _ToggleRow(
-                  label: 'Last 30s Voice Alert',
+                  label: context.tr('settings.label.last_30s_voice_alert'),
                   value: settings.enableLastSecondsAlert,
                   onChanged: (value) {
                     _guardTimerChange(context, ref, () {
@@ -363,7 +391,7 @@ class SettingsScreen extends ConsumerWidget {
 
                 // Last 10s Clapping Alert toggle
                 _ToggleRow(
-                  label: 'Last 10s Clapping Alert',
+                  label: context.tr('settings.label.last_10s_clapping_alert'),
                   value: settings.enableLast10SecondsClappingAlert,
                   onChanged: (value) {
                     _guardTimerChange(context, ref, () {
@@ -374,7 +402,7 @@ class SettingsScreen extends ConsumerWidget {
 
                 // Vibration toggle
                 _ToggleRow(
-                  label: 'Vibration',
+                  label: context.tr('settings.label.vibration'),
                   value: settings.enableVibration,
                   onChanged: (value) {
                     _guardTimerChange(context, ref, () {
@@ -390,18 +418,35 @@ class SettingsScreen extends ConsumerWidget {
             _SettingsCard(
               children: [
                 _SectionHeader(
-                  title: 'DISPLAY',
+                  title: context.tr('settings.section.display'),
                   icon: Icons.phone_android_outlined,
                 ),
                 const SizedBox(height: 6),
                 _ToggleRow(
-                  label: 'Keep Screen On',
+                  label: context.tr('settings.label.keep_screen_on'),
                   value: settings.enableKeepScreenOn,
                   onChanged: (value) {
                     _guardTimerChange(context, ref, () {
                       settingsService.updateKeepScreenOn(value);
                     });
                   },
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Language
+            _SettingsCard(
+              children: [
+                _SectionHeader(
+                  title: context.tr('settings.section.language'),
+                  icon: Icons.language_rounded,
+                ),
+                const SizedBox(height: 8),
+                _NavigationTile(
+                  title: context.tr('settings.label.language'),
+                  subtitle: context.tr(localeLabelKey(context.locale)),
+                  onTap: () => _showLanguagePicker(context),
                 ),
               ],
             ),
@@ -415,13 +460,15 @@ class SettingsScreen extends ConsumerWidget {
                 child: _SettingsCard(
                   children: [
                     _SectionHeader(
-                      title: 'SAVAGE LEVEL',
+                      title: context.tr('settings.section.savage_level'),
                       icon: Icons.whatshot_outlined,
                     ),
                     if (!settings.enableMotivationalSound) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'Enable Motivational Voice to change level',
+                        context.tr(
+                          'settings.hint.enable_voice_to_change_level',
+                        ),
                         style: GoogleFonts.rajdhani(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -462,7 +509,7 @@ class SettingsScreen extends ConsumerWidget {
                   size: 20,
                 ),
                 label: Text(
-                  'Reset to Defaults',
+                  context.tr('settings.action.reset_to_defaults'),
                   style: GoogleFonts.rajdhani(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -476,18 +523,21 @@ class SettingsScreen extends ConsumerWidget {
             // Legal links
             Divider(color: Colors.white.withValues(alpha: 0.08), thickness: 1),
             const SizedBox(height: 16),
-            _SectionHeader(title: 'LEGAL', icon: Icons.gavel_rounded),
+            _SectionHeader(
+              title: context.tr('settings.section.legal'),
+              icon: Icons.gavel_rounded,
+            ),
             const SizedBox(height: 12),
             _LegalLinkTile(
               icon: Icons.shield_outlined,
-              label: 'Privacy Policy',
+              label: context.tr('settings.label.privacy_policy'),
               url:
                   'https://sol-cito.github.io/savage-timer/privacy_policy.html',
             ),
             const SizedBox(height: 8),
             _LegalLinkTile(
               icon: Icons.description_outlined,
-              label: 'Terms of Service',
+              label: context.tr('settings.label.terms_of_service'),
               url:
                   'https://sol-cito.github.io/savage-timer/terms_of_service.html',
             ),
@@ -508,12 +558,72 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  String _formatDuration(int seconds) {
+  Future<void> _showLanguagePicker(BuildContext context) async {
+    final currentLocale = context.locale;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder:
+          (sheetContext) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr('settings.language.select'),
+                    style: GoogleFonts.oswald(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  for (final locale in kSupportedLocales)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        context.tr(localeLabelKey(locale)),
+                        style: GoogleFonts.rajdhani(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                      trailing:
+                          locale.languageCode == currentLocale.languageCode
+                              ? const Icon(
+                                Icons.check_rounded,
+                                color: Colors.redAccent,
+                              )
+                              : null,
+                      onTap: () async {
+                        Navigator.of(sheetContext).pop();
+                        if (locale.languageCode != currentLocale.languageCode) {
+                          await context.setLocale(locale);
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  String _formatDuration(BuildContext context, int seconds) {
     final minutes = seconds ~/ 60;
     final secs = seconds % 60;
-    if (minutes == 0) return '${secs}s';
-    if (secs == 0) return '${minutes}m';
-    return '${minutes}m ${secs}s';
+    final secondsShort = context.tr('common.seconds_short');
+    final minutesShort = context.tr('common.minutes_short');
+    if (minutes == 0) return '$secs$secondsShort';
+    if (secs == 0) return '$minutes$minutesShort';
+    return '$minutes$minutesShort $secs$secondsShort';
   }
 
   void _showResetDialog(
@@ -530,7 +640,7 @@ class SettingsScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(16),
             ),
             title: Text(
-              'RESET SETTINGS',
+              context.tr('settings.reset_dialog.title'),
               style: GoogleFonts.oswald(
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
@@ -539,7 +649,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             content: Text(
-              'Are you sure you want to reset all settings to defaults?',
+              context.tr('settings.reset_dialog.content'),
               style: GoogleFonts.rajdhani(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -550,7 +660,7 @@ class SettingsScreen extends ConsumerWidget {
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text(
-                  'Cancel',
+                  context.tr('common.cancel'),
                   style: GoogleFonts.rajdhani(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -566,7 +676,7 @@ class SettingsScreen extends ConsumerWidget {
                   });
                 },
                 child: Text(
-                  'Reset',
+                  context.tr('common.reset'),
                   style: GoogleFonts.rajdhani(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -595,10 +705,10 @@ class SeparateRoundDurationsScreen extends ConsumerWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
-          tooltip: 'Back',
+          tooltip: context.tr('common.back'),
         ),
         title: Text(
-          'SEPARATE ROUND DURATION',
+          context.tr('settings.section.separate_round_duration'),
           style: GoogleFonts.oswald(
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -611,7 +721,7 @@ class SeparateRoundDurationsScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           children: [
             Text(
-              'Set a duration for each round',
+              context.tr('settings.hint.set_duration_per_round'),
               style: GoogleFonts.rajdhani(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -623,11 +733,16 @@ class SeparateRoundDurationsScreen extends ConsumerWidget {
               _SettingsCard(
                 children: [
                   _SectionHeader(
-                    title: 'ROUND ${i + 1}',
+                    title: context.tr(
+                      'settings.value.round_title',
+                      namedArgs: {'round': '${i + 1}'},
+                    ),
                     icon: Icons.timer_outlined,
                   ),
                   const SizedBox(height: 8),
-                  _ValueDisplay(value: _formatDuration(roundDurations[i])),
+                  _ValueDisplay(
+                    value: _formatDuration(context, roundDurations[i]),
+                  ),
                   const SizedBox(height: 4),
                   SliderTheme(
                     data: SliderTheme.of(context).copyWith(
@@ -653,7 +768,10 @@ class SeparateRoundDurationsScreen extends ConsumerWidget {
                       },
                     ),
                   ),
-                  const _SliderLabels(left: '30s', right: '5 min'),
+                  _SliderLabels(
+                    left: context.tr('settings.slider.min_30s'),
+                    right: context.tr('settings.slider.max_5_min'),
+                  ),
                 ],
               ),
               if (i != settings.totalRounds - 1) const SizedBox(height: 12),
@@ -664,12 +782,14 @@ class SeparateRoundDurationsScreen extends ConsumerWidget {
     );
   }
 
-  String _formatDuration(int seconds) {
+  String _formatDuration(BuildContext context, int seconds) {
     final minutes = seconds ~/ 60;
     final secs = seconds % 60;
-    if (minutes == 0) return '${secs}s';
-    if (secs == 0) return '${minutes}m';
-    return '${minutes}m ${secs}s';
+    final secondsShort = context.tr('common.seconds_short');
+    final minutesShort = context.tr('common.minutes_short');
+    if (minutes == 0) return '$secs$secondsShort';
+    if (secs == 0) return '$minutes$minutesShort';
+    return '$minutes$minutesShort $secs$secondsShort';
   }
 }
 
@@ -687,10 +807,10 @@ class WarmUpSetScreen extends ConsumerWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
-          tooltip: 'Back',
+          tooltip: context.tr('common.back'),
         ),
         title: Text(
-          'WARM-UP SET',
+          context.tr('settings.section.warm_up_set'),
           style: GoogleFonts.oswald(
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -703,7 +823,7 @@ class WarmUpSetScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           children: [
             Text(
-              'This one-time warm-up runs before your workout rounds begin.',
+              context.tr('settings.hint.warm_up_screen_description'),
               style: GoogleFonts.rajdhani(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -713,13 +833,16 @@ class WarmUpSetScreen extends ConsumerWidget {
             const SizedBox(height: 14),
             _SettingsCard(
               children: [
-                const _SectionHeader(
-                  title: 'WARM-UP DURATION',
+                _SectionHeader(
+                  title: context.tr('settings.section.warm_up_duration'),
                   icon: Icons.local_fire_department_outlined,
                 ),
                 const SizedBox(height: 8),
                 _ValueDisplay(
-                  value: _formatDuration(settings.warmUpDurationSeconds),
+                  value: _formatDuration(
+                    context,
+                    settings.warmUpDurationSeconds,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 SliderTheme(
@@ -743,7 +866,10 @@ class WarmUpSetScreen extends ConsumerWidget {
                     },
                   ),
                 ),
-                const _SliderLabels(left: '30s', right: '5 min'),
+                _SliderLabels(
+                  left: context.tr('settings.slider.min_30s'),
+                  right: context.tr('settings.slider.max_5_min'),
+                ),
               ],
             ),
           ],
@@ -752,12 +878,14 @@ class WarmUpSetScreen extends ConsumerWidget {
     );
   }
 
-  String _formatDuration(int seconds) {
+  String _formatDuration(BuildContext context, int seconds) {
     final minutes = seconds ~/ 60;
     final secs = seconds % 60;
-    if (minutes == 0) return '${secs}s';
-    if (secs == 0) return '${minutes}m';
-    return '${minutes}m ${secs}s';
+    final secondsShort = context.tr('common.seconds_short');
+    final minutesShort = context.tr('common.minutes_short');
+    if (minutes == 0) return '$secs$secondsShort';
+    if (secs == 0) return '$minutes$minutesShort';
+    return '$minutes$minutesShort $secs$secondsShort';
   }
 }
 

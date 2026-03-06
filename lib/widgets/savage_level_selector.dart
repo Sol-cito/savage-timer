@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -16,63 +17,68 @@ class SavageLevelSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: SavageLevel.values.map((level) {
-        final isSelected = level == selectedLevel;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: level.index == 0 ? 0 : 5,
-              right: level.index == 2 ? 0 : 5,
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => onChanged(level),
-                borderRadius: BorderRadius.circular(12),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
+      children:
+          SavageLevel.values.map((level) {
+            final isSelected = level == selectedLevel;
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: level.index == 0 ? 0 : 5,
+                  right: level.index == 2 ? 0 : 5,
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => onChanged(level),
                     borderRadius: BorderRadius.circular(12),
-                    color: isSelected
-                        ? _getLevelColor(level).withValues(alpha: 0.25)
-                        : Colors.white.withValues(alpha: 0.05),
-                    border: Border.all(
-                      color: isSelected
-                          ? _getLevelColor(level).withValues(alpha: 0.6)
-                          : Colors.white.withValues(alpha: 0.1),
-                      width: isSelected ? 1.5 : 1,
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        _getLevelIcon(level),
-                        color: isSelected
-                            ? _getLevelColor(level)
-                            : Colors.white.withValues(alpha: 0.4),
-                        size: 24,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        _getLevelName(level).toUpperCase(),
-                        style: GoogleFonts.rajdhani(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: isSelected
-                              ? _getLevelColor(level)
-                              : Colors.white.withValues(alpha: 0.4),
-                          letterSpacing: 1,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color:
+                            isSelected
+                                ? _getLevelColor(level).withValues(alpha: 0.25)
+                                : Colors.white.withValues(alpha: 0.05),
+                        border: Border.all(
+                          color:
+                              isSelected
+                                  ? _getLevelColor(level).withValues(alpha: 0.6)
+                                  : Colors.white.withValues(alpha: 0.1),
+                          width: isSelected ? 1.5 : 1,
                         ),
                       ),
-                    ],
+                      child: Column(
+                        children: [
+                          Icon(
+                            _getLevelIcon(level),
+                            color:
+                                isSelected
+                                    ? _getLevelColor(level)
+                                    : Colors.white.withValues(alpha: 0.4),
+                            size: 24,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _getLevelName(context, level).toUpperCase(),
+                            style: GoogleFonts.rajdhani(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color:
+                                  isSelected
+                                      ? _getLevelColor(level)
+                                      : Colors.white.withValues(alpha: 0.4),
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-        );
-      }).toList(),
+            );
+          }).toList(),
     );
   }
 
@@ -98,14 +104,14 @@ class SavageLevelSelector extends StatelessWidget {
     }
   }
 
-  String _getLevelName(SavageLevel level) {
+  String _getLevelName(BuildContext context, SavageLevel level) {
     switch (level) {
       case SavageLevel.level1:
-        return 'Mild';
+        return context.tr('timer.level.mild');
       case SavageLevel.level2:
-        return 'Medium';
+        return context.tr('timer.level.medium');
       case SavageLevel.level3:
-        return 'Savage';
+        return context.tr('timer.level.savage');
     }
   }
 }
@@ -118,7 +124,7 @@ class SavageLevelDescription extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      _getDescription(level),
+      _getDescription(context, level),
       style: GoogleFonts.rajdhani(
         color: Colors.white.withValues(alpha: 0.45),
         fontSize: 15,
@@ -128,14 +134,14 @@ class SavageLevelDescription extends StatelessWidget {
     );
   }
 
-  String _getDescription(SavageLevel level) {
+  String _getDescription(BuildContext context, SavageLevel level) {
     switch (level) {
       case SavageLevel.level1:
-        return 'Encouraging and supportive motivation';
+        return context.tr('savage_level.description.mild');
       case SavageLevel.level2:
-        return 'Firm pushes with some edge';
+        return context.tr('savage_level.description.medium');
       case SavageLevel.level3:
-        return 'No mercy — extreme motivation';
+        return context.tr('savage_level.description.savage');
     }
   }
 }
