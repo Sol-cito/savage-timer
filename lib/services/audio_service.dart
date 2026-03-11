@@ -11,6 +11,9 @@ import 'package:flutter_tts/flutter_tts.dart';
 import '../models/timer_settings.dart';
 
 class AudioService {
+  static const _defaultVoiceLanguageCode = 'en';
+  static const Set<String> _supportedVoiceLanguageCodes = {'en', 'es', 'ko'};
+
   final AudioPlayer _bellPlayer = AudioPlayer();
   final AudioPlayer _warningPlayer = AudioPlayer();
   final AudioPlayer _voicePlayer = AudioPlayer();
@@ -25,6 +28,8 @@ class AudioService {
   bool _isInitialized = false;
 
   bool _soundsLoaded = false;
+  String _voiceLanguageCode = _defaultVoiceLanguageCode;
+  Map<String, dynamic>? _assetManifestCache;
 
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -86,6 +91,26 @@ class AudioService {
     await _warningPlayer.setPlayerMode(PlayerMode.lowLatency);
     await _countPlayer.setPlayerMode(PlayerMode.lowLatency);
     await _clapPlayer.setPlayerMode(PlayerMode.lowLatency);
+  }
+
+  void setVoiceLanguage(String languageCode) {
+    _voiceLanguageCode = _normalizeVoiceLanguageCode(languageCode);
+  }
+
+  String _normalizeVoiceLanguageCode(String languageCode) {
+    final normalized =
+        languageCode.toLowerCase().replaceAll('_', '-').split('-').first;
+
+    return _supportedVoiceLanguageCodes.contains(normalized)
+        ? normalized
+        : _defaultVoiceLanguageCode;
+  }
+
+  List<String> _voiceLanguageSearchOrder() {
+    if (_voiceLanguageCode == _defaultVoiceLanguageCode) {
+      return const [_defaultVoiceLanguageCode];
+    }
+    return [_voiceLanguageCode, _defaultVoiceLanguageCode];
   }
 
   Future<void> playBell() async {
@@ -186,27 +211,63 @@ class AudioService {
     };
   }
 
-  Future<void> _playRandomAsset(SavageLevel level, String subfolder) async {
+  Future<Map<String, dynamic>> _loadAssetManifest() async {
+    if (_assetManifestCache != null) {
+      return _assetManifestCache!;
+    }
+    final manifestJson = await rootBundle.loadString('AssetManifest.json');
+    final manifest = json.decode(manifestJson) as Map<String, dynamic>;
+    _assetManifestCache = manifest;
+    return manifest;
+  }
+
+  String _voiceAssetPrefix(
+    String languageCode,
+    SavageLevel level,
+    String subfolder,
+  ) {
     final levelFolder = _getLevelFolder(level);
-    final prefix = 'assets/sounds/$levelFolder/$subfolder/';
+    return 'assets/sounds/$languageCode/$levelFolder/$subfolder/';
+  }
 
+  List<String> _voiceAssetsForPrefix(
+    Map<String, dynamic> manifest,
+    String prefix,
+  ) {
+    return manifest.keys
+        .where(
+          (key) =>
+              key.startsWith(prefix) &&
+              key.endsWith('.mp3') &&
+              !key.contains('_full'),
+        )
+        .toList();
+  }
+
+  bool _hasAssetPath(Map<String, dynamic> manifest, String relativeAssetPath) {
+    return manifest.containsKey('assets/$relativeAssetPath');
+  }
+
+  String? _pickLocalizedVoiceAsset(
+    Map<String, dynamic> manifest,
+    SavageLevel level,
+    String subfolder,
+  ) {
+    for (final languageCode in _voiceLanguageSearchOrder()) {
+      final prefix = _voiceAssetPrefix(languageCode, level, subfolder);
+      final files = _voiceAssetsForPrefix(manifest, prefix);
+      if (files.isNotEmpty) {
+        return files[Random().nextInt(files.length)];
+      }
+    }
+    return null;
+  }
+
+  Future<void> _playRandomAsset(SavageLevel level, String subfolder) async {
     try {
-      final manifestJson = await rootBundle.loadString('AssetManifest.json');
-      final manifest = json.decode(manifestJson) as Map<String, dynamic>;
-
-      final files =
-          manifest.keys
-              .where(
-                (key) =>
-                    key.startsWith(prefix) &&
-                    key.endsWith('.mp3') &&
-                    !key.contains('_full'),
-              )
-              .toList();
-
-      if (files.isEmpty) return;
-
-      final selected = files[Random().nextInt(files.length)];
+      final manifest = await _loadAssetManifest();
+      final selected = _pickLocalizedVoiceAsset(manifest, level, subfolder);
+      if (selected == null) return;
       final relativePath = selected.replaceFirst('assets/', '');
 
       await _voicePlayer.stop();
@@ -234,26 +295,10 @@ class AudioService {
     int countdownThreshold,
     int Function() getRemainingSeconds,
   ) async {
-    final levelFolder = _getLevelFolder(level);
-    final prefix = 'assets/sounds/$levelFolder/rest/';
-
     try {
-      final manifestJson = await rootBundle.loadString('AssetManifest.json');
-      final manifest = json.decode(manifestJson) as Map<String, dynamic>;
-
-      final files =
-          manifest.keys
-              .where(
-                (key) =>
-                    key.startsWith(prefix) &&
-                    key.endsWith('.mp3') &&
-                    !key.contains('_full'),
-              )
-              .toList();
-
-      if (files.isEmpty) return false;
-
-      final selected = files[Random().nextInt(files.length)];
+      final manifest = await _loadAssetManifest();
+      final selected = _pickLocalizedVoiceAsset(manifest, level, 'rest');
+      if (selected == null) return false;
       final relativePath = selected.replaceFirst('assets/', '');
 
       await _voicePlayer.stop();
@@ -300,26 +345,10 @@ class AudioService {
     int bellThreshold,
     int Function() getRemainingSeconds,
   ) async {
-    final levelFolder = _getLevelFolder(level);
-    final prefix = 'assets/sounds/$levelFolder/exercise/';
-
     try {
-      final manifestJson = await rootBundle.loadString('AssetManifest.json');
-      final manifest = json.decode(manifestJson) as Map<String, dynamic>;
-
-      final files =
-          manifest.keys
-              .where(
-                (key) =>
-                    key.startsWith(prefix) &&
-                    key.endsWith('.mp3') &&
-                    !key.contains('_full'),
-              )
-              .toList();
-
-      if (files.isEmpty) return false;
-
-      final selected = files[Random().nextInt(files.length)];
+      final manifest = await _loadAssetManifest();
+      final selected = _pickLocalizedVoiceAsset(manifest, level, 'exercise');
+      if (selected == null) return false;
       final relativePath = selected.replaceFirst('assets/', '');
 
       await _voicePlayer.stop();
@@ -373,17 +402,29 @@ class AudioService {
     bool enableMotivationalSound,
   ) async {
     final folder = _getCountFolder(level, enableMotivationalSound);
-    final path = 'sounds/$folder/count/$fileName';
-    await _playCountPath(path);
+    try {
+      final manifest = await _loadAssetManifest();
+      for (final languageCode in _voiceLanguageSearchOrder()) {
+        final path = 'sounds/$languageCode/$folder/count/$fileName';
+        if (_hasAssetPath(manifest, path)) {
+          await _playCountPath(path);
+          return;
+        }
+      }
+    } catch (_) {
+      // Asset manifest unavailable, skip cue playback.
+    }
   }
 
-  Future<void> _playCountPath(String path) async {
+  Future<bool> _playCountPath(String path) async {
     try {
       await _countPlayer.stop();
       await _countPlayer.setSource(AssetSource(path));
       await _countPlayer.resume();
+      return true;
     } catch (e) {
       // Count sound not available, silently fail
+      return false;
     }
   }
 
@@ -423,7 +464,40 @@ class AudioService {
     bool enableMotivationalSound,
   ) async {
     final folder = _getCountFolder(level, enableMotivationalSound);
-    await _playCountPath('sounds/$folder/count/count_start_warmingup.mp3');
+    try {
+      final manifest = await _loadAssetManifest();
+      for (final languageCode in _voiceLanguageSearchOrder()) {
+        final path =
+            'sounds/$languageCode/$folder/count/count_start_warmingup.mp3';
+        if (_hasAssetPath(manifest, path)) {
+          await _playCountPath(path);
+          return;
+        }
+      }
+    } catch (_) {
+      // Asset manifest unavailable, skip cue playback.
+    }
+  }
+
+  /// Cool-down cue uses the same localized count folder routing.
+  Future<void> playCountStartCoolDown(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
+    final folder = _getCountFolder(level, enableMotivationalSound);
+    try {
+      final manifest = await _loadAssetManifest();
+      for (final languageCode in _voiceLanguageSearchOrder()) {
+        final path =
+            'sounds/$languageCode/$folder/count/count_start_cooldown.mp3';
+        if (_hasAssetPath(manifest, path)) {
+          await _playCountPath(path);
+          return;
+        }
+      }
+    } catch (_) {
+      // Asset manifest unavailable, skip cue playback.
+    }
   }
 
   Future<void> playCount30Seconds(

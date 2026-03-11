@@ -19,7 +19,24 @@ class SettingsService extends StateNotifier<TimerSettings> {
     if (jsonString != null) {
       try {
         final json = jsonDecode(jsonString) as Map<String, dynamic>;
-        state = TimerSettings.fromJson(json);
+        var loaded = TimerSettings.fromJson(json);
+        if (loaded.enableSeparateRoundDurations &&
+            loaded.roundDurationsSeconds.isEmpty) {
+          loaded = loaded.copyWith(enableSeparateRoundDurations: false);
+        }
+        if (loaded.enableWarmUpSet && loaded.warmUpDurationSeconds <= 0) {
+          loaded = loaded.copyWith(
+            enableWarmUpSet: false,
+            warmUpDurationSeconds: 60,
+          );
+        }
+        if (loaded.enableCoolDownSet && loaded.coolDownDurationSeconds <= 0) {
+          loaded = loaded.copyWith(
+            enableCoolDownSet: false,
+            coolDownDurationSeconds: 60,
+          );
+        }
+        state = loaded;
       } catch (e) {
         state = const TimerSettings();
       }
@@ -77,6 +94,16 @@ class SettingsService extends StateNotifier<TimerSettings> {
 
   void updateWarmUpDuration(int seconds) {
     state = state.copyWith(warmUpDurationSeconds: seconds);
+    _saveSettings();
+  }
+
+  void updateCoolDownSetEnabled(bool enabled) {
+    state = state.copyWith(enableCoolDownSet: enabled);
+    _saveSettings();
+  }
+
+  void updateCoolDownDuration(int seconds) {
+    state = state.copyWith(coolDownDurationSeconds: seconds);
     _saveSettings();
   }
 

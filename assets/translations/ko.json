@@ -1,0 +1,143 @@
+{
+  "app": {
+    "title": "Savage Timer",
+    "tab": {
+      "timer": "타이머",
+      "settings": "설정"
+    }
+  },
+  "common": {
+    "cancel": "취소",
+    "reset": "초기화",
+    "back": "뒤로",
+    "off": "끔",
+    "seconds_short": "초",
+    "minutes_short": "분",
+    "minutes_label": "분"
+  },
+  "timer": {
+    "summary": "총 {total} | 경과 {elapsed}",
+    "warm_up_badge": "워밍업 라운드 진행 중",
+    "control": {
+      "reset": "초기화",
+      "skip": "건너뛰기",
+      "start": "시작",
+      "pause": "일시정지"
+    },
+    "reset_dialog": {
+      "title": "타이머 초기화",
+      "content": "정말 초기화하시겠어요? 현재 진행 상황이 사라집니다."
+    },
+    "phase": {
+      "ready": "준비",
+      "get_ready": "준비하세요",
+      "done": "완료",
+      "warm_up": "워밍업",
+      "cool_down": "쿨다운",
+      "round": "라운드 {round}",
+      "rest": "휴식"
+    },
+    "round_indicator": "{current} / {total} 라운드",
+    "up_next": {
+      "label": "다음",
+      "rest": "휴식",
+      "cool_down": "쿨다운",
+      "finish": "종료",
+      "round": "라운드 {round}"
+    },
+    "level": {
+      "mild": "마일드",
+      "medium": "미디엄",
+      "savage": "새비지"
+    }
+  },
+  "settings": {
+    "guard": {
+      "title": "타이머 실행 중",
+      "content": "이 설정을 변경하면 현재 타이머가 중지됩니다. 계속할까요?",
+      "confirm": "중지 후 변경"
+    },
+    "header": "설정",
+    "section": {
+      "round_duration": "라운드 시간",
+      "rest_duration": "휴식 시간",
+      "total_rounds": "총 라운드",
+      "audio": "오디오",
+      "display": "화면",
+      "language": "언어",
+      "savage_level": "새비지 레벨",
+      "legal": "법적 고지",
+      "separate_round_duration": "라운드별 시간",
+      "warm_up_set": "워밍업",
+      "warm_up_duration": "워밍업 시간",
+      "cool_down_set": "쿨다운",
+      "cool_down_duration": "쿨다운 시간"
+    },
+    "label": {
+      "separate_round_duration": "라운드별 시간 설정",
+      "warm_up_set": "워밍업 세트",
+      "cool_down_set": "쿨다운 세트",
+      "motivational_voice": "동기부여 음성",
+      "last_30s_voice_alert": "마지막 30초 음성 알림",
+      "last_10s_clapping_alert": "마지막 10초 박수 알림",
+      "vibration": "진동",
+      "language": "언어",
+      "keep_screen_on": "화면 켜짐 유지",
+      "privacy_policy": "개인정보 처리방침",
+      "terms_of_service": "이용약관"
+    },
+    "language": {
+      "select": "언어 선택",
+      "english": "영어",
+      "spanish": "스페인어",
+      "korean": "한국어"
+    },
+    "hint": {
+      "warm_up": "라운드 1 전에 한 번 실행되어 몸을 풀 수 있습니다.",
+      "cool_down": "마지막 라운드 후 한 번 실행되어 마무리 전에 회복할 수 있습니다.",
+      "enable_voice_to_change_level": "레벨 변경을 위해 동기부여 음성을 켜세요",
+      "set_duration_per_round": "각 라운드의 시간을 설정하세요",
+      "warm_up_screen_description": "운동 라운드 시작 전에 한 번만 워밍업이 실행됩니다.",
+      "cool_down_screen_description": "마지막 라운드 후 운동이 종료되기 전에 한 번만 쿨다운이 실행됩니다."
+    },
+    "action": {
+      "set_round_durations": "라운드 시간 설정",
+      "configure_warm_up_set": "워밍업 설정",
+      "configure_cool_down_set": "쿨다운 설정",
+      "reset_to_defaults": "기본값으로 초기화"
+    },
+    "value": {
+      "rounds_configured": "{rounds}개 라운드 설정됨",
+      "one_time_before_round": "라운드 {round} 전 1회 {duration}",
+      "one_time_after_all_rounds": "모든 라운드 후 1회 {duration}",
+      "round_title": "라운드 {round}"
+    },
+    "slider": {
+      "min_30s": "30초",
+      "max_5_min": "5분",
+      "min_10s": "10초",
+      "max_60s": "60초"
+    },
+    "reset_dialog": {
+      "title": "설정 초기화",
+      "content": "모든 설정을 기본값으로 초기화할까요?"
+    }
+  },
+  "savage_level": {
+    "description": {
+      "mild": "격려 중심의 부드러운 동기부여",
+      "medium": "약간 강한 압박의 동기부여",
+      "savage": "가차 없는 극한 동기부여"
+    }
+  },
+  "notification": {
+    "channel_name": "타이머",
+    "channel_description": "Savage Timer 운동 진행 상황",
+    "workout_complete_title": "운동 완료!",
+    "workout_complete_body": "수고하셨습니다! 모든 라운드를 마쳤어요.",
+    "paused_title": "Savage Timer - 일시정지",
+    "running_title": "Savage Timer - {phase}",
+    "paused_body": "{phase} - {time} 남음",
+    "running_body": "라운드 {current}/{total} - {time}"
+  }
+}

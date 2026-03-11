@@ -10,6 +10,7 @@ import 'package:savage_timer/services/audio_service.dart';
 import 'package:savage_timer/services/settings_service.dart';
 import 'package:savage_timer/services/timer_service.dart';
 import 'package:savage_timer/services/vibration_service.dart';
+import '../test_helpers/localization_test_wrapper.dart';
 
 /// A minimal fake AudioService so we don't need real audio players in tests.
 class FakeAudioService extends AudioService {
@@ -57,12 +58,14 @@ class _RunningTimerService extends TimerService {
 Widget buildSettingsScreen(SharedPreferences prefs) {
   final fakeAudio = FakeAudioService();
 
-  return ProviderScope(
-    overrides: [
-      sharedPreferencesProvider.overrideWithValue(prefs),
-      audioServiceProvider.overrideWithValue(fakeAudio),
-    ],
-    child: const MaterialApp(home: SettingsScreen()),
+  return wrapWithLocalization(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        audioServiceProvider.overrideWithValue(fakeAudio),
+      ],
+      child: buildLocalizedMaterialApp(home: const SettingsScreen()),
+    ),
   );
 }
 
@@ -70,16 +73,26 @@ Widget buildSettingsScreen(SharedPreferences prefs) {
 /// guard dialog is triggered when settings are changed.
 Widget buildSettingsScreenWithRunningTimer(SharedPreferences prefs) {
   final fakeAudio = FakeAudioService();
-  return ProviderScope(
-    overrides: [
-      sharedPreferencesProvider.overrideWithValue(prefs),
-      audioServiceProvider.overrideWithValue(fakeAudio),
-      timerServiceProvider.overrideWith((ref) {
-        final settings = ref.read(settingsServiceProvider);
-        return _RunningTimerService(settings);
-      }),
-    ],
-    child: const MaterialApp(home: SettingsScreen()),
+  return wrapWithLocalization(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        audioServiceProvider.overrideWithValue(fakeAudio),
+        timerServiceProvider.overrideWith((ref) {
+          final settings = ref.read(settingsServiceProvider);
+          return _RunningTimerService(settings);
+        }),
+      ],
+      child: buildLocalizedMaterialApp(home: const SettingsScreen()),
+    ),
+  );
+}
+
+Future<void> pumpSettingsScreen(WidgetTester tester, Widget screen) async {
+  await pumpLocalizedWidget(
+    tester,
+    widget: screen,
+    readyFinder: find.byType(SettingsScreen),
   );
 }
 
@@ -89,18 +102,18 @@ void main() {
   late SharedPreferences prefs;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
+    await ensureLocalizationInitialized();
     prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
   });
 
   group('SettingsScreen legal links section', () {
     testWidgets('displays LEGAL section header', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('LEGAL'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
 
@@ -108,13 +121,12 @@ void main() {
     });
 
     testWidgets('displays Privacy Policy tile', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       // Scroll to bottom to ensure the legal section is visible
       await tester.dragUntilVisible(
         find.text('Privacy Policy'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
 
@@ -122,12 +134,11 @@ void main() {
     });
 
     testWidgets('displays Terms of Service tile', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Terms of Service'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
 
@@ -135,12 +146,11 @@ void main() {
     });
 
     testWidgets('legal tiles show open_in_new icon', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Terms of Service'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
 
@@ -149,12 +159,11 @@ void main() {
     });
 
     testWidgets('legal tiles show correct icons', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Terms of Service'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
 
@@ -163,12 +172,11 @@ void main() {
     });
 
     testWidgets('legal section is separated by a divider', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('LEGAL'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
 
@@ -176,12 +184,11 @@ void main() {
     });
 
     testWidgets('legal tiles are tappable (InkWell)', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Terms of Service'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
 
@@ -201,12 +208,11 @@ void main() {
     });
 
     testWidgets('gavel icon is shown for LEGAL header', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('LEGAL'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
 
@@ -216,24 +222,22 @@ void main() {
 
   group('SettingsScreen vibration toggle', () {
     testWidgets('displays Vibration label in AUDIO section', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Vibration'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       expect(find.text('Vibration'), findsOneWidget);
     });
 
     testWidgets('Vibration toggle is on by default', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Vibration'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
 
@@ -248,12 +252,11 @@ void main() {
     });
 
     testWidgets('tapping Vibration toggle turns it off', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Vibration'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       await tester.pumpAndSettle();
@@ -279,24 +282,22 @@ void main() {
 
   group('SettingsScreen last alerts toggles', () {
     testWidgets('displays Last 30s Voice Alert label', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Last 30s Voice Alert'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       expect(find.text('Last 30s Voice Alert'), findsOneWidget);
     });
 
     testWidgets('displays Last 10s Clapping Alert label', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Last 10s Clapping Alert'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       expect(find.text('Last 10s Clapping Alert'), findsOneWidget);
@@ -305,48 +306,44 @@ void main() {
 
   group('SettingsScreen keep screen on toggle', () {
     testWidgets('displays DISPLAY section header', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('DISPLAY'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       expect(find.text('DISPLAY'), findsOneWidget);
     });
 
     testWidgets('displays phone icon for DISPLAY header', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('DISPLAY'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       expect(find.byIcon(Icons.phone_android_outlined), findsOneWidget);
     });
 
     testWidgets('displays Keep Screen On label', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Keep Screen On'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       expect(find.text('Keep Screen On'), findsOneWidget);
     });
 
     testWidgets('Keep Screen On toggle is on by default', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Keep Screen On'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
 
@@ -364,12 +361,11 @@ void main() {
     });
 
     testWidgets('tapping Keep Screen On toggle turns it off', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Keep Screen On'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       await tester.pumpAndSettle();
@@ -399,23 +395,147 @@ void main() {
     });
   });
 
+  group('SettingsScreen language selection', () {
+    Future<void> openLanguagePicker(WidgetTester tester) async {
+      await tester.dragUntilVisible(
+        find.text('Language'),
+        find.byType(Scrollable).first,
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+
+      final languageTile = find.ancestor(
+        of: find.text('Language'),
+        matching: find.byType(InkWell),
+      );
+      expect(
+        languageTile,
+        findsWidgets,
+        reason: 'Language settings tile should be tappable.',
+      );
+
+      await tester.tap(languageTile.first);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('displays LANGUAGE section header', (tester) async {
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
+
+      await tester.dragUntilVisible(
+        find.text('LANGUAGE'),
+        find.byType(Scrollable).first,
+        const Offset(0, -200),
+      );
+
+      expect(find.text('LANGUAGE'), findsOneWidget);
+      expect(find.byIcon(Icons.language_rounded), findsOneWidget);
+    });
+
+    testWidgets('shows available languages and updates locale', (tester) async {
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
+
+      await openLanguagePicker(tester);
+
+      expect(find.text('Select Language'), findsOneWidget);
+      expect(find.text('English'), findsAtLeastNWidgets(1));
+      expect(find.text('Spanish'), findsOneWidget);
+      expect(find.text('Korean'), findsOneWidget);
+
+      await tester.tap(find.text('Spanish'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      final locale = Localizations.localeOf(
+        tester.element(find.byType(SettingsScreen)),
+      );
+      expect(locale.languageCode, 'es');
+    });
+
+    testWidgets(
+      'shows confirmation dialog when changing language while running',
+      (tester) async {
+        await pumpSettingsScreen(
+          tester,
+          buildSettingsScreenWithRunningTimer(prefs),
+        );
+
+        await openLanguagePicker(tester);
+        await tester.tap(find.text('Korean'), warnIfMissed: false);
+        await tester.pumpAndSettle();
+
+        expect(find.text('TIMER IS RUNNING'), findsOneWidget);
+        expect(find.text('Stop & Change'), findsOneWidget);
+        expect(find.text('Cancel'), findsOneWidget);
+      },
+    );
+
+    testWidgets('keeps running locale when language change is cancelled', (
+      tester,
+    ) async {
+      await pumpSettingsScreen(
+        tester,
+        buildSettingsScreenWithRunningTimer(prefs),
+      );
+
+      await openLanguagePicker(tester);
+      await tester.tap(find.text('Korean'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      final locale = Localizations.localeOf(
+        tester.element(find.byType(SettingsScreen)),
+      );
+      expect(locale.languageCode, 'en');
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SettingsScreen)),
+      );
+      expect(container.read(timerServiceProvider).state, SessionState.running);
+    });
+
+    testWidgets('resets timer and changes locale when confirmed', (
+      tester,
+    ) async {
+      await pumpSettingsScreen(
+        tester,
+        buildSettingsScreenWithRunningTimer(prefs),
+      );
+
+      await openLanguagePicker(tester);
+      await tester.tap(find.text('Korean'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Stop & Change'));
+      await tester.pumpAndSettle();
+
+      final locale = Localizations.localeOf(
+        tester.element(find.byType(SettingsScreen)),
+      );
+      expect(locale.languageCode, 'ko');
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SettingsScreen)),
+      );
+      expect(container.read(timerServiceProvider).state, SessionState.idle);
+    });
+  });
+
   group('SettingsScreen existing sections', () {
     testWidgets('displays SETTINGS header', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       expect(find.text('SETTINGS'), findsOneWidget);
     });
 
     testWidgets('displays all section headers', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       expect(find.text('ROUND DURATION'), findsOneWidget);
       expect(find.text('REST DURATION'), findsOneWidget);
       await tester.dragUntilVisible(
         find.text('TOTAL ROUNDS'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       expect(find.text('TOTAL ROUNDS'), findsOneWidget);
@@ -423,26 +543,83 @@ void main() {
       // AUDIO and SAVAGE LEVEL may be offscreen, scroll to find them
       await tester.dragUntilVisible(
         find.text('AUDIO'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       expect(find.text('AUDIO'), findsOneWidget);
 
       await tester.dragUntilVisible(
         find.text('SAVAGE LEVEL'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       expect(find.text('SAVAGE LEVEL'), findsOneWidget);
     });
 
+    testWidgets('places SAVAGE LEVEL right under AUDIO section', (
+      tester,
+    ) async {
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
+
+      final scrollable = find.byType(Scrollable).first;
+
+      await tester.dragUntilVisible(
+        find.text('AUDIO'),
+        scrollable,
+        const Offset(0, -200),
+      );
+      final scrollAfterAudio =
+          tester.state<ScrollableState>(scrollable).position.pixels;
+
+      await tester.dragUntilVisible(
+        find.text('SAVAGE LEVEL'),
+        scrollable,
+        const Offset(0, -200),
+      );
+      final scrollAfterSavage =
+          tester.state<ScrollableState>(scrollable).position.pixels;
+
+      await tester.dragUntilVisible(
+        find.text('DISPLAY'),
+        scrollable,
+        const Offset(0, -200),
+      );
+      final scrollAfterDisplay =
+          tester.state<ScrollableState>(scrollable).position.pixels;
+
+      expect(scrollAfterAudio, lessThan(scrollAfterSavage));
+      expect(scrollAfterSavage, lessThan(scrollAfterDisplay));
+    });
+
+    testWidgets('shows Motivational Voice toggle inside SAVAGE LEVEL section', (
+      tester,
+    ) async {
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
+
+      final scrollable = find.byType(Scrollable).first;
+      await tester.dragUntilVisible(
+        find.text('SAVAGE LEVEL'),
+        scrollable,
+        const Offset(0, -200),
+      );
+      await tester.dragUntilVisible(
+        find.text('Motivational Voice'),
+        scrollable,
+        const Offset(0, -200),
+      );
+
+      final savageTop = tester.getTopLeft(find.text('SAVAGE LEVEL').first).dy;
+      final motivationalTop =
+          tester.getTopLeft(find.text('Motivational Voice').first).dy;
+      expect(savageTop, lessThan(motivationalTop));
+    });
+
     testWidgets('displays Reset to Defaults button', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Reset to Defaults'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
 
@@ -450,28 +627,25 @@ void main() {
     });
 
     testWidgets('displays default round duration value', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       // Default is 180s = 3m
       expect(find.text('3m'), findsOneWidget);
     });
 
     testWidgets('displays default rest duration value', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       // Default rest is 30s — may appear more than once (value + slider label)
       expect(find.text('30s'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('displays default total rounds value', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('TOTAL ROUNDS'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
 
@@ -493,8 +667,7 @@ void main() {
     }
 
     testWidgets('toggle is visible and off by default', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       expect(find.text('Separate Round Duration'), findsOneWidget);
 
@@ -505,8 +678,7 @@ void main() {
     });
 
     testWidgets('enabling shows round duration setup entry', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.tap(
         separateRoundDurationSwitch(tester),
@@ -523,8 +695,7 @@ void main() {
     testWidgets('setup entry opens separate round duration screen', (
       tester,
     ) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.tap(
         separateRoundDurationSwitch(tester),
@@ -545,8 +716,10 @@ void main() {
     testWidgets('toggle shows confirmation dialog when timer is running', (
       tester,
     ) async {
-      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(
+        tester,
+        buildSettingsScreenWithRunningTimer(prefs),
+      );
 
       await tester.tap(
         separateRoundDurationSwitch(tester),
@@ -572,8 +745,7 @@ void main() {
     }
 
     testWidgets('toggle is visible and off by default', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       expect(find.text('Warm-up Set'), findsOneWidget);
 
@@ -582,8 +754,7 @@ void main() {
     });
 
     testWidgets('enabling shows warm-up setup entry', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.tap(warmUpSetSwitch(tester), warnIfMissed: false);
       await tester.pumpAndSettle();
@@ -593,8 +764,7 @@ void main() {
     });
 
     testWidgets('setup entry opens warm-up set screen', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.tap(warmUpSetSwitch(tester), warnIfMissed: false);
       await tester.pumpAndSettle();
@@ -610,10 +780,114 @@ void main() {
     testWidgets('toggle shows confirmation dialog when timer is running', (
       tester,
     ) async {
-      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(
+        tester,
+        buildSettingsScreenWithRunningTimer(prefs),
+      );
 
       await tester.tap(warmUpSetSwitch(tester), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.text('TIMER IS RUNNING'), findsOneWidget);
+      expect(find.text('Stop & Change'), findsOneWidget);
+    });
+  });
+
+  group('SettingsScreen cool-down set', () {
+    Finder coolDownSetSwitch(WidgetTester tester) {
+      final row =
+          find
+              .ancestor(
+                of: find.text('Cool-down Set'),
+                matching: find.byType(Row),
+              )
+              .first;
+      return find.descendant(of: row, matching: find.byType(Switch));
+    }
+
+    testWidgets('toggle is visible and off by default', (tester) async {
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
+
+      await tester.dragUntilVisible(
+        find.text('Cool-down Set'),
+        find.byType(Scrollable).first,
+        const Offset(0, -200),
+      );
+
+      expect(find.text('Cool-down Set'), findsOneWidget);
+
+      final switchWidget = tester.widget<Switch>(coolDownSetSwitch(tester));
+      expect(switchWidget.value, isFalse);
+    });
+
+    testWidgets('cool-down widget is shown under warm-up widget', (
+      tester,
+    ) async {
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
+
+      await tester.dragUntilVisible(
+        find.text('Cool-down Set'),
+        find.byType(Scrollable).first,
+        const Offset(0, -200),
+      );
+
+      final warmUpTop = tester.getTopLeft(find.text('Warm-up Set').first).dy;
+      final coolDownTop =
+          tester.getTopLeft(find.text('Cool-down Set').first).dy;
+      expect(warmUpTop, lessThan(coolDownTop));
+    });
+
+    testWidgets('enabling shows cool-down setup entry', (tester) async {
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
+
+      await tester.dragUntilVisible(
+        find.text('Cool-down Set'),
+        find.byType(Scrollable).first,
+        const Offset(0, -200),
+      );
+      await tester.tap(coolDownSetSwitch(tester), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Configure Cool-down Set'), findsOneWidget);
+      expect(
+        find.textContaining('One-time 1m after all rounds'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('setup entry opens cool-down set screen', (tester) async {
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
+
+      await tester.dragUntilVisible(
+        find.text('Cool-down Set'),
+        find.byType(Scrollable).first,
+        const Offset(0, -200),
+      );
+      await tester.tap(coolDownSetSwitch(tester), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Configure Cool-down Set'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('COOL-DOWN SET'), findsOneWidget);
+      expect(find.text('COOL-DOWN DURATION'), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+    });
+
+    testWidgets('toggle shows confirmation dialog when timer is running', (
+      tester,
+    ) async {
+      await pumpSettingsScreen(
+        tester,
+        buildSettingsScreenWithRunningTimer(prefs),
+      );
+
+      await tester.dragUntilVisible(
+        find.text('Cool-down Set'),
+        find.byType(Scrollable).first,
+        const Offset(0, -200),
+      );
+      await tester.tap(coolDownSetSwitch(tester), warnIfMissed: false);
       await tester.pumpAndSettle();
 
       expect(find.text('TIMER IS RUNNING'), findsOneWidget);
@@ -625,7 +899,7 @@ void main() {
     Future<void> scrollToKeepScreenOnAndTap(WidgetTester tester) async {
       await tester.dragUntilVisible(
         find.text('Keep Screen On'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       await tester.pumpAndSettle();
@@ -648,8 +922,10 @@ void main() {
     testWidgets('shows confirmation dialog when timer is running', (
       tester,
     ) async {
-      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(
+        tester,
+        buildSettingsScreenWithRunningTimer(prefs),
+      );
 
       await scrollToKeepScreenOnAndTap(tester);
 
@@ -667,8 +943,10 @@ void main() {
     testWidgets('does not change setting when dialog is cancelled', (
       tester,
     ) async {
-      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(
+        tester,
+        buildSettingsScreenWithRunningTimer(prefs),
+      );
 
       await scrollToKeepScreenOnAndTap(tester);
 
@@ -688,8 +966,10 @@ void main() {
     testWidgets(
       'disables Keep Screen On and stops timer when Stop & Change tapped',
       (tester) async {
-        await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-        await tester.pumpAndSettle();
+        await pumpSettingsScreen(
+          tester,
+          buildSettingsScreenWithRunningTimer(prefs),
+        );
 
         await scrollToKeepScreenOnAndTap(tester);
 
@@ -708,12 +988,11 @@ void main() {
     );
 
     testWidgets('no dialog when timer is idle', (tester) async {
-      await tester.pumpWidget(buildSettingsScreen(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
       await tester.dragUntilVisible(
         find.text('Keep Screen On'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       await tester.pumpAndSettle();
@@ -753,7 +1032,7 @@ void main() {
       Future<Finder> scrollToVolumeSliderAndTap(WidgetTester tester) async {
         await tester.dragUntilVisible(
           find.text('AUDIO'),
-          find.byType(ListView),
+          find.byType(Scrollable).first,
           const Offset(0, -200),
         );
         await tester.pumpAndSettle();
@@ -777,8 +1056,10 @@ void main() {
       testWidgets('no confirmation dialog when timer is running', (
         tester,
       ) async {
-        await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-        await tester.pumpAndSettle();
+        await pumpSettingsScreen(
+          tester,
+          buildSettingsScreenWithRunningTimer(prefs),
+        );
 
         await scrollToVolumeSliderAndTap(tester);
 
@@ -787,8 +1068,10 @@ void main() {
       });
 
       testWidgets('volume changes while timer keeps running', (tester) async {
-        await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-        await tester.pumpAndSettle();
+        await pumpSettingsScreen(
+          tester,
+          buildSettingsScreenWithRunningTimer(prefs),
+        );
 
         await scrollToVolumeSliderAndTap(tester);
 
@@ -803,8 +1086,7 @@ void main() {
       });
 
       testWidgets('volume changes when timer is idle', (tester) async {
-        await tester.pumpWidget(buildSettingsScreen(prefs));
-        await tester.pumpAndSettle();
+        await pumpSettingsScreen(tester, buildSettingsScreen(prefs));
 
         await scrollToVolumeSliderAndTap(tester);
 
@@ -818,7 +1100,7 @@ void main() {
     Future<void> scrollToVibrationAndTap(WidgetTester tester) async {
       await tester.dragUntilVisible(
         find.text('Vibration'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       await tester.pumpAndSettle();
@@ -838,8 +1120,10 @@ void main() {
     testWidgets('shows confirmation dialog when timer is running', (
       tester,
     ) async {
-      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(
+        tester,
+        buildSettingsScreenWithRunningTimer(prefs),
+      );
 
       await scrollToVibrationAndTap(tester);
 
@@ -857,8 +1141,10 @@ void main() {
     testWidgets('does not change vibration when dialog is cancelled', (
       tester,
     ) async {
-      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(
+        tester,
+        buildSettingsScreenWithRunningTimer(prefs),
+      );
 
       await scrollToVibrationAndTap(tester);
 
@@ -875,8 +1161,10 @@ void main() {
     testWidgets(
       'disables vibration and stops timer when Stop & Change tapped',
       (tester) async {
-        await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-        await tester.pumpAndSettle();
+        await pumpSettingsScreen(
+          tester,
+          buildSettingsScreenWithRunningTimer(prefs),
+        );
 
         await scrollToVibrationAndTap(tester);
 
@@ -899,7 +1187,7 @@ void main() {
     Future<void> scrollToClappingToggleAndTap(WidgetTester tester) async {
       await tester.dragUntilVisible(
         find.text('Last 10s Clapping Alert'),
-        find.byType(ListView),
+        find.byType(Scrollable).first,
         const Offset(0, -200),
       );
       await tester.pumpAndSettle();
@@ -922,8 +1210,10 @@ void main() {
     testWidgets('shows confirmation dialog when timer is running', (
       tester,
     ) async {
-      await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-      await tester.pumpAndSettle();
+      await pumpSettingsScreen(
+        tester,
+        buildSettingsScreenWithRunningTimer(prefs),
+      );
 
       await scrollToClappingToggleAndTap(tester);
 
@@ -934,8 +1224,10 @@ void main() {
     testWidgets(
       'enables clapping alert and stops timer when Stop & Change tapped',
       (tester) async {
-        await tester.pumpWidget(buildSettingsScreenWithRunningTimer(prefs));
-        await tester.pumpAndSettle();
+        await pumpSettingsScreen(
+          tester,
+          buildSettingsScreenWithRunningTimer(prefs),
+        );
 
         await scrollToClappingToggleAndTap(tester);
         await tester.tap(find.text('Stop & Change'));

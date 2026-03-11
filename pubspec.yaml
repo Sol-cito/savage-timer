@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.3+18
+version: 1.0.4+19
 
 environment:
   sdk: ^3.7.2
@@ -43,6 +43,7 @@ dependencies:
   google_fonts: ^6.3.2
   url_launcher: ^6.2.5
   audio_session: ^0.2.2
+  easy_localization: ^3.0.7
 
 dev_dependencies:
   flutter_test:
@@ -67,24 +68,57 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/translations/
     - assets/images/
     - assets/sounds/
-    - assets/sounds/mild/count/
-    - assets/sounds/mild/examples/
-    - assets/sounds/mild/exercise/
-    - assets/sounds/mild/rest/
-    - assets/sounds/mild/start/
-    - assets/sounds/medium/count/
-    - assets/sounds/medium/examples/
-    - assets/sounds/medium/exercise/
-    - assets/sounds/medium/rest/
-    - assets/sounds/medium/start/
-    - assets/sounds/neutral/count/
-    - assets/sounds/savage/count/
-    - assets/sounds/savage/examples/
-    - assets/sounds/savage/exercise/
-    - assets/sounds/savage/rest/
-    - assets/sounds/savage/start/
+    - assets/sounds/en/mild/count/
+    - assets/sounds/en/mild/examples/
+    - assets/sounds/en/mild/exercise/
+    - assets/sounds/en/mild/rest/
+    - assets/sounds/en/mild/start/
+    - assets/sounds/en/medium/count/
+    - assets/sounds/en/medium/examples/
+    - assets/sounds/en/medium/exercise/
+    - assets/sounds/en/medium/rest/
+    - assets/sounds/en/medium/start/
+    - assets/sounds/en/neutral/count/
+    - assets/sounds/en/savage/count/
+    - assets/sounds/en/savage/examples/
+    - assets/sounds/en/savage/exercise/
+    - assets/sounds/en/savage/rest/
+    - assets/sounds/en/savage/start/
+    - assets/sounds/es/mild/count/
+    - assets/sounds/es/mild/examples/
+    - assets/sounds/es/mild/exercise/
+    - assets/sounds/es/mild/rest/
+    - assets/sounds/es/mild/start/
+    - assets/sounds/es/medium/count/
+    - assets/sounds/es/medium/examples/
+    - assets/sounds/es/medium/exercise/
+    - assets/sounds/es/medium/rest/
+    - assets/sounds/es/medium/start/
+    - assets/sounds/es/neutral/count/
+    - assets/sounds/es/savage/count/
+    - assets/sounds/es/savage/examples/
+    - assets/sounds/es/savage/exercise/
+    - assets/sounds/es/savage/rest/
+    - assets/sounds/es/savage/start/
+    - assets/sounds/ko/mild/count/
+    - assets/sounds/ko/mild/examples/
+    - assets/sounds/ko/mild/exercise/
+    - assets/sounds/ko/mild/rest/
+    - assets/sounds/ko/mild/start/
+    - assets/sounds/ko/medium/count/
+    - assets/sounds/ko/medium/examples/
+    - assets/sounds/ko/medium/exercise/
+    - assets/sounds/ko/medium/rest/
+    - assets/sounds/ko/medium/start/
+    - assets/sounds/ko/neutral/count/
+    - assets/sounds/ko/savage/count/
+    - assets/sounds/ko/savage/examples/
+    - assets/sounds/ko/savage/exercise/
+    - assets/sounds/ko/savage/rest/
+    - assets/sounds/ko/savage/start/
     - shorebird.yaml
 
   # An image asset can refer to one or more resolution-specific "variants", see

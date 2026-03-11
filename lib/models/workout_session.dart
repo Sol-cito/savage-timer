@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 
 enum SessionState { idle, preparing, running, paused, completed }
 
-enum SessionPhase { warmUp, round, rest }
+enum SessionPhase { warmUp, round, rest, coolDown }
 
 class WorkoutSession extends Equatable {
   final int currentRound;
@@ -16,6 +16,8 @@ class WorkoutSession extends Equatable {
   final int restDurationSeconds;
   final bool enableWarmUpSet;
   final int warmUpDurationSeconds;
+  final bool enableCoolDownSet;
+  final int coolDownDurationSeconds;
   final bool pausedDuringPreparation;
 
   const WorkoutSession({
@@ -30,11 +32,14 @@ class WorkoutSession extends Equatable {
     this.restDurationSeconds = 30,
     this.enableWarmUpSet = false,
     this.warmUpDurationSeconds = 60,
+    this.enableCoolDownSet = false,
+    this.coolDownDurationSeconds = 60,
     this.pausedDuringPreparation = false,
   });
 
   bool get isResting => phase == SessionPhase.rest;
   bool get isWarmUp => phase == SessionPhase.warmUp;
+  bool get isCoolDown => phase == SessionPhase.coolDown;
 
   bool get isLastRound => currentRound == totalRounds;
 
@@ -54,6 +59,7 @@ class WorkoutSession extends Equatable {
       SessionPhase.warmUp => warmUpDurationSeconds,
       SessionPhase.round => roundDurationForRound(currentRound),
       SessionPhase.rest => restDurationSeconds,
+      SessionPhase.coolDown => coolDownDurationSeconds,
     };
     if (totalSeconds == 0) return 0;
     return 1 - (remainingSeconds / totalSeconds);
@@ -75,6 +81,7 @@ class WorkoutSession extends Equatable {
       SessionPhase.warmUp => 'WARM-UP',
       SessionPhase.round => 'ROUND $currentRound',
       SessionPhase.rest => 'REST',
+      SessionPhase.coolDown => 'COOL-DOWN',
     };
   }
 
@@ -103,7 +110,8 @@ class WorkoutSession extends Equatable {
   int get totalDurationSeconds =>
       (enableWarmUpSet ? warmUpDurationSeconds : 0) +
       _sumRoundDurationsThroughRound(totalRounds) +
-      (totalRounds - 1) * restDurationSeconds;
+      (totalRounds - 1) * restDurationSeconds +
+      (enableCoolDownSet ? coolDownDurationSeconds : 0);
 
   String get formattedTotalDuration {
     final minutes = totalDurationSeconds ~/ 60;
@@ -128,12 +136,17 @@ class WorkoutSession extends Equatable {
           _sumRoundDurationsThroughRound(currentRound - 1) +
           (currentRound - 1) * restDurationSeconds +
           elapsedInCurrentRound;
-    } else {
+    }
+    if (phase == SessionPhase.rest) {
       return (enableWarmUpSet ? warmUpDurationSeconds : 0) +
           _sumRoundDurationsThroughRound(currentRound) +
           (currentRound - 1) * restDurationSeconds +
           (restDurationSeconds - remainingSeconds);
     }
+    return (enableWarmUpSet ? warmUpDurationSeconds : 0) +
+        _sumRoundDurationsThroughRound(totalRounds) +
+        (totalRounds - 1) * restDurationSeconds +
+        (coolDownDurationSeconds - remainingSeconds);
   }
 
   String get formattedElapsed {
@@ -153,9 +166,15 @@ class WorkoutSession extends Equatable {
       return 'Round 1';
     }
     if (phase == SessionPhase.round) {
-      return isLastRound ? 'Finish' : 'Rest';
+      if (isLastRound) {
+        return enableCoolDownSet ? 'Cool-down' : 'Finish';
+      }
+      return 'Rest';
     }
-    return 'Round ${currentRound + 1}';
+    if (phase == SessionPhase.rest) {
+      return 'Round ${currentRound + 1}';
+    }
+    return 'Finish';
   }
 
   int? get nextPhaseDurationSeconds {
@@ -169,9 +188,15 @@ class WorkoutSession extends Equatable {
       return roundDurationForRound(1);
     }
     if (phase == SessionPhase.round) {
-      return isLastRound ? null : restDurationSeconds;
+      if (isLastRound) {
+        return enableCoolDownSet ? coolDownDurationSeconds : null;
+      }
+      return restDurationSeconds;
     }
-    return roundDurationForRound(currentRound + 1);
+    if (phase == SessionPhase.rest) {
+      return roundDurationForRound(currentRound + 1);
+    }
+    return null;
   }
 
   String? get formattedNextPhaseDuration {
@@ -194,6 +219,8 @@ class WorkoutSession extends Equatable {
     int? restDurationSeconds,
     bool? enableWarmUpSet,
     int? warmUpDurationSeconds,
+    bool? enableCoolDownSet,
+    int? coolDownDurationSeconds,
     bool? pausedDuringPreparation,
   }) {
     return WorkoutSession(
@@ -211,6 +238,9 @@ class WorkoutSession extends Equatable {
       enableWarmUpSet: enableWarmUpSet ?? this.enableWarmUpSet,
       warmUpDurationSeconds:
           warmUpDurationSeconds ?? this.warmUpDurationSeconds,
+      enableCoolDownSet: enableCoolDownSet ?? this.enableCoolDownSet,
+      coolDownDurationSeconds:
+          coolDownDurationSeconds ?? this.coolDownDurationSeconds,
       pausedDuringPreparation:
           pausedDuringPreparation ?? this.pausedDuringPreparation,
     );
@@ -229,6 +259,8 @@ class WorkoutSession extends Equatable {
     restDurationSeconds,
     enableWarmUpSet,
     warmUpDurationSeconds,
+    enableCoolDownSet,
+    coolDownDurationSeconds,
     pausedDuringPreparation,
   ];
 }

@@ -165,6 +165,8 @@ void main() {
       service.updateRestDuration(45);
       service.updateWarmUpSetEnabled(true);
       service.updateWarmUpDuration(90);
+      service.updateCoolDownSetEnabled(true);
+      service.updateCoolDownDuration(75);
       service.updateTotalRounds(6);
       service.updateSavageLevel(SavageLevel.level3);
       service.updateMotivationalSound(false);
@@ -187,6 +189,8 @@ void main() {
         restDurationSeconds: 45,
         enableWarmUpSet: true,
         warmUpDurationSeconds: 90,
+        enableCoolDownSet: true,
+        coolDownDurationSeconds: 75,
         totalRounds: 5,
         savageLevel: SavageLevel.level3,
         enableMotivationalSound: false,
@@ -201,6 +205,8 @@ void main() {
       expect(service.state.restDurationSeconds, 45);
       expect(service.state.enableWarmUpSet, true);
       expect(service.state.warmUpDurationSeconds, 90);
+      expect(service.state.enableCoolDownSet, true);
+      expect(service.state.coolDownDurationSeconds, 75);
       expect(service.state.totalRounds, 5);
       expect(service.state.savageLevel, SavageLevel.level3);
       expect(service.state.enableMotivationalSound, false);
@@ -212,6 +218,60 @@ void main() {
       final service = SettingsService(prefs);
       expect(service.state, const TimerSettings());
     });
+
+    test(
+      'disables separate round durations when legacy persisted list is empty',
+      () async {
+        await prefs.setString(
+          'timer_settings',
+          jsonEncode({
+            ...const TimerSettings().toJson(),
+            'enableSeparateRoundDurations': true,
+            'roundDurationsSeconds': <int>[],
+          }),
+        );
+
+        final service = SettingsService(prefs);
+        expect(service.state.enableSeparateRoundDurations, false);
+        expect(service.state.roundDurationsSeconds, isEmpty);
+      },
+    );
+
+    test(
+      'disables warm-up set when legacy persisted warm-up duration is invalid',
+      () async {
+        await prefs.setString(
+          'timer_settings',
+          jsonEncode({
+            ...const TimerSettings().toJson(),
+            'enableWarmUpSet': true,
+            'warmUpDurationSeconds': 0,
+          }),
+        );
+
+        final service = SettingsService(prefs);
+        expect(service.state.enableWarmUpSet, false);
+        expect(service.state.warmUpDurationSeconds, 60);
+      },
+    );
+
+    test(
+      'disables cool-down set when legacy persisted cool-down duration is invalid',
+      () async {
+        await prefs.setString(
+          'timer_settings',
+          jsonEncode({
+            ...const TimerSettings().toJson(),
+            'enableCoolDownSet': true,
+            'coolDownDurationSeconds': 0,
+          }),
+        );
+
+        final service = SettingsService(prefs);
+        expect(service.state.enableCoolDownSet, false);
+        expect(service.state.coolDownDurationSeconds, 60);
+      },
+    );
   });
 
   group('SettingsService separate round durations', () {
@@ -283,6 +343,36 @@ void main() {
       final service2 = SettingsService(prefs);
       expect(service2.state.enableWarmUpSet, true);
       expect(service2.state.warmUpDurationSeconds, 75);
+    });
+  });
+
+  group('SettingsService cool-down set', () {
+    test('enableCoolDownSet defaults to false', () {
+      final service = SettingsService(prefs);
+      expect(service.state.enableCoolDownSet, false);
+    });
+
+    test('updateCoolDownSetEnabled sets to true', () {
+      final service = SettingsService(prefs);
+      service.updateCoolDownSetEnabled(true);
+      expect(service.state.enableCoolDownSet, true);
+    });
+
+    test('updateCoolDownDuration updates duration seconds', () {
+      final service = SettingsService(prefs);
+      service.updateCoolDownDuration(120);
+      expect(service.state.coolDownDurationSeconds, 120);
+    });
+
+    test('cool-down settings persist across instances', () async {
+      final service1 = SettingsService(prefs);
+      service1.updateCoolDownSetEnabled(true);
+      service1.updateCoolDownDuration(75);
+      await Future<void>.delayed(Duration.zero);
+
+      final service2 = SettingsService(prefs);
+      expect(service2.state.enableCoolDownSet, true);
+      expect(service2.state.coolDownDurationSeconds, 75);
     });
   });
 }

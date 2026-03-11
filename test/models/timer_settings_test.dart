@@ -10,6 +10,8 @@ void main() {
       expect(settings.roundDurationsSeconds, isEmpty);
       expect(settings.enableWarmUpSet, false);
       expect(settings.warmUpDurationSeconds, 60);
+      expect(settings.enableCoolDownSet, false);
+      expect(settings.coolDownDurationSeconds, 60);
     });
 
     test('copyWith can enable and set per-round durations', () {
@@ -84,6 +86,38 @@ void main() {
       final restored = TimerSettings.fromJson(json);
       expect(restored.enableWarmUpSet, false);
       expect(restored.warmUpDurationSeconds, 60);
+    });
+  });
+
+  group('TimerSettings cool-down set', () {
+    test('copyWith can enable cool-down set and change duration', () {
+      const settings = TimerSettings();
+      final copy = settings.copyWith(
+        enableCoolDownSet: true,
+        coolDownDurationSeconds: 90,
+      );
+      expect(copy.enableCoolDownSet, true);
+      expect(copy.coolDownDurationSeconds, 90);
+    });
+
+    test('toJson includes cool-down fields', () {
+      const settings = TimerSettings(
+        enableCoolDownSet: true,
+        coolDownDurationSeconds: 75,
+      );
+      final json = settings.toJson();
+      expect(json['enableCoolDownSet'], true);
+      expect(json['coolDownDurationSeconds'], 75);
+    });
+
+    test('fromJson defaults cool-down fields when missing', () {
+      final json =
+          const TimerSettings().toJson()
+            ..remove('enableCoolDownSet')
+            ..remove('coolDownDurationSeconds');
+      final restored = TimerSettings.fromJson(json);
+      expect(restored.enableCoolDownSet, false);
+      expect(restored.coolDownDurationSeconds, 60);
     });
   });
 

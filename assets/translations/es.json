@@ -1,0 +1,143 @@
+{
+  "app": {
+    "title": "Savage Timer",
+    "tab": {
+      "timer": "Temporizador",
+      "settings": "Ajustes"
+    }
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "reset": "Restablecer",
+    "back": "Atrás",
+    "off": "APAGADO",
+    "seconds_short": "s",
+    "minutes_short": "m",
+    "minutes_label": "min"
+  },
+  "timer": {
+    "summary": "Total {total} | Transcurrido {elapsed}",
+    "warm_up_badge": "CALENTAMIENTO EN PROGRESO",
+    "control": {
+      "reset": "Restablecer",
+      "skip": "Saltar",
+      "start": "Iniciar",
+      "pause": "Pausar"
+    },
+    "reset_dialog": {
+      "title": "Restablecer temporizador",
+      "content": "¿Seguro que quieres restablecer? Se perderá el progreso actual."
+    },
+    "phase": {
+      "ready": "LISTO",
+      "get_ready": "PREPÁRATE",
+      "done": "HECHO",
+      "warm_up": "CALENTAMIENTO",
+      "cool_down": "ENFRIAMIENTO",
+      "round": "RONDA {round}",
+      "rest": "DESCANSO"
+    },
+    "round_indicator": "RONDA {current} DE {total}",
+    "up_next": {
+      "label": "SIGUE",
+      "rest": "Descanso",
+      "cool_down": "Enfriamiento",
+      "finish": "Finalizar",
+      "round": "Ronda {round}"
+    },
+    "level": {
+      "mild": "Suave",
+      "medium": "Medio",
+      "savage": "Salvaje"
+    }
+  },
+  "settings": {
+    "guard": {
+      "title": "EL TEMPORIZADOR ESTÁ EN MARCHA",
+      "content": "Cambiar este ajuste detendrá el temporizador actual. ¿Continuar?",
+      "confirm": "Detener y cambiar"
+    },
+    "header": "AJUSTES",
+    "section": {
+      "round_duration": "DURACIÓN DE RONDA",
+      "rest_duration": "DURACIÓN DE DESCANSO",
+      "total_rounds": "TOTAL DE RONDAS",
+      "audio": "AUDIO",
+      "display": "PANTALLA",
+      "language": "IDIOMA",
+      "savage_level": "NIVEL SALVAJE",
+      "legal": "LEGAL",
+      "separate_round_duration": "DURACIÓN POR RONDA",
+      "warm_up_set": "CALENTAMIENTO",
+      "warm_up_duration": "DURACIÓN DE CALENTAMIENTO",
+      "cool_down_set": "ENFRIAMIENTO",
+      "cool_down_duration": "DURACIÓN DE ENFRIAMIENTO"
+    },
+    "label": {
+      "separate_round_duration": "Duración por ronda",
+      "warm_up_set": "Calentamiento",
+      "cool_down_set": "Enfriamiento",
+      "motivational_voice": "Voz motivacional",
+      "last_30s_voice_alert": "Aviso de voz en últimos 30s",
+      "last_10s_clapping_alert": "Aplausos en últimos 10s",
+      "vibration": "Vibración",
+      "language": "Idioma",
+      "keep_screen_on": "Mantener pantalla encendida",
+      "privacy_policy": "Política de privacidad",
+      "terms_of_service": "Términos de servicio"
+    },
+    "language": {
+      "select": "Seleccionar idioma",
+      "english": "Inglés",
+      "spanish": "Español",
+      "korean": "Coreano"
+    },
+    "hint": {
+      "warm_up": "Se ejecuta una vez antes de la Ronda 1 para entrar en ritmo.",
+      "cool_down": "Se ejecuta una vez tras la última ronda para recuperarte antes de terminar.",
+      "enable_voice_to_change_level": "Activa Voz motivacional para cambiar el nivel",
+      "set_duration_per_round": "Configura una duración para cada ronda",
+      "warm_up_screen_description": "Este calentamiento único se ejecuta antes de que empiecen tus rondas.",
+      "cool_down_screen_description": "Este enfriamiento único se ejecuta después de la última ronda antes de completar el entrenamiento."
+    },
+    "action": {
+      "set_round_durations": "Configurar duraciones por ronda",
+      "configure_warm_up_set": "Configurar calentamiento",
+      "configure_cool_down_set": "Configurar enfriamiento",
+      "reset_to_defaults": "Restablecer valores por defecto"
+    },
+    "value": {
+      "rounds_configured": "{rounds} rondas configuradas",
+      "one_time_before_round": "Una vez: {duration} antes de la Ronda {round}",
+      "one_time_after_all_rounds": "Una vez: {duration} después de todas las rondas",
+      "round_title": "RONDA {round}"
+    },
+    "slider": {
+      "min_30s": "30s",
+      "max_5_min": "5 min",
+      "min_10s": "10s",
+      "max_60s": "60s"
+    },
+    "reset_dialog": {
+      "title": "RESTABLECER AJUSTES",
+      "content": "¿Seguro que quieres restablecer todos los ajustes por defecto?"
+    }
+  },
+  "savage_level": {
+    "description": {
+      "mild": "Motivación amable y de apoyo",
+      "medium": "Empujes firmes con algo de intensidad",
+      "savage": "Sin piedad: motivación extrema"
+    }
+  },
+  "notification": {
+    "channel_name": "Temporizador",
+    "channel_description": "Progreso del entrenamiento en Savage Timer",
+    "workout_complete_title": "¡Entrenamiento completado!",
+    "workout_complete_body": "¡Gran trabajo! Terminaste todas las rondas.",
+    "paused_title": "Savage Timer - Pausado",
+    "running_title": "Savage Timer - {phase}",
+    "paused_body": "{phase} - {time} restantes",
+    "running_body": "Ronda {current}/{total} - {time}"
+  }
+}

@@ -13,6 +13,8 @@ class TimerSettings extends Equatable {
   final int restDurationSeconds;
   final bool enableWarmUpSet;
   final int warmUpDurationSeconds;
+  final bool enableCoolDownSet;
+  final int coolDownDurationSeconds;
   final int totalRounds;
   final bool enableLastSecondsAlert;
   final bool enableLast10SecondsClappingAlert;
@@ -30,6 +32,8 @@ class TimerSettings extends Equatable {
     this.restDurationSeconds = 30,
     this.enableWarmUpSet = false,
     this.warmUpDurationSeconds = 60,
+    this.enableCoolDownSet = false,
+    this.coolDownDurationSeconds = 60,
     this.totalRounds = 3,
     this.enableLastSecondsAlert = true,
     this.enableLast10SecondsClappingAlert = false,
@@ -70,6 +74,8 @@ class TimerSettings extends Equatable {
     int? restDurationSeconds,
     bool? enableWarmUpSet,
     int? warmUpDurationSeconds,
+    bool? enableCoolDownSet,
+    int? coolDownDurationSeconds,
     int? totalRounds,
     bool? enableLastSecondsAlert,
     bool? enableLast10SecondsClappingAlert,
@@ -90,6 +96,9 @@ class TimerSettings extends Equatable {
       enableWarmUpSet: enableWarmUpSet ?? this.enableWarmUpSet,
       warmUpDurationSeconds:
           warmUpDurationSeconds ?? this.warmUpDurationSeconds,
+      enableCoolDownSet: enableCoolDownSet ?? this.enableCoolDownSet,
+      coolDownDurationSeconds:
+          coolDownDurationSeconds ?? this.coolDownDurationSeconds,
       totalRounds: totalRounds ?? this.totalRounds,
       enableLastSecondsAlert:
           enableLastSecondsAlert ?? this.enableLastSecondsAlert,
@@ -114,6 +123,8 @@ class TimerSettings extends Equatable {
       'restDurationSeconds': restDurationSeconds,
       'enableWarmUpSet': enableWarmUpSet,
       'warmUpDurationSeconds': warmUpDurationSeconds,
+      'enableCoolDownSet': enableCoolDownSet,
+      'coolDownDurationSeconds': coolDownDurationSeconds,
       'totalRounds': totalRounds,
       'enableLastSecondsAlert': enableLastSecondsAlert,
       'enableLast10SecondsClappingAlert': enableLast10SecondsClappingAlert,
@@ -144,6 +155,8 @@ class TimerSettings extends Equatable {
       restDurationSeconds: json['restDurationSeconds'] as int? ?? 30,
       enableWarmUpSet: json['enableWarmUpSet'] as bool? ?? false,
       warmUpDurationSeconds: json['warmUpDurationSeconds'] as int? ?? 60,
+      enableCoolDownSet: json['enableCoolDownSet'] as bool? ?? false,
+      coolDownDurationSeconds: json['coolDownDurationSeconds'] as int? ?? 60,
       totalRounds: json['totalRounds'] as int? ?? 3,
       enableLastSecondsAlert: json['enableLastSecondsAlert'] as bool? ?? true,
       enableLast10SecondsClappingAlert:
@@ -165,6 +178,8 @@ class TimerSettings extends Equatable {
     restDurationSeconds,
     enableWarmUpSet,
     warmUpDurationSeconds,
+    enableCoolDownSet,
+    coolDownDurationSeconds,
     totalRounds,
     enableLastSecondsAlert,
     enableLast10SecondsClappingAlert,

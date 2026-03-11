@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,6 +9,7 @@ import '../models/timer_settings.dart';
 import '../models/workout_session.dart';
 import '../services/settings_service.dart';
 import '../services/timer_service.dart';
+import '../utils/session_labels.dart';
 import '../widgets/circular_timer.dart';
 import '../widgets/control_button.dart';
 import '../widgets/round_indicator.dart';
@@ -21,7 +23,8 @@ class TimerScreen extends ConsumerWidget {
     final session = ref.watch(timerServiceProvider);
     final timerService = ref.read(timerServiceProvider.notifier);
     final settings = ref.watch(settingsServiceProvider);
-    final hasUpNext = session.nextPhaseLabel != null;
+    final upNext = localizedUpNextPhase(session, context: context);
+    final hasUpNext = upNext != null;
 
     // Scale factor based on screen height (designed for ~852pt)
     final screenWidth = MediaQuery.sizeOf(context).width;
@@ -62,7 +65,13 @@ class TimerScreen extends ConsumerWidget {
               children: [
                 // Total duration and elapsed
                 Text(
-                  'Total ${session.formattedTotalDuration} | Elapsed ${session.formattedElapsed}',
+                  context.tr(
+                    'timer.summary',
+                    namedArgs: {
+                      'total': session.formattedTotalDuration,
+                      'elapsed': session.formattedElapsed,
+                    },
+                  ),
                   style: GoogleFonts.rajdhani(
                     fontSize: 18 * s + 2,
                     fontWeight: FontWeight.w700,
@@ -77,7 +86,7 @@ class TimerScreen extends ConsumerWidget {
                 ),
                 // Phase label
                 Text(
-                  session.phaseLabel,
+                  localizedPhaseLabel(session, context: context),
                   style: GoogleFonts.oswald(
                     fontSize: 36 * s + 4,
                     fontWeight: FontWeight.w700,
@@ -101,7 +110,7 @@ class TimerScreen extends ConsumerWidget {
                       ),
                     ),
                     child: Text(
-                      'WARM-UP ROUND IN PROGRESS',
+                      context.tr('timer.warm_up_badge'),
                       style: GoogleFonts.rajdhani(
                         fontSize: 13 * s + 1,
                         fontWeight: FontWeight.w700,
@@ -139,7 +148,7 @@ class TimerScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        _getSavageLevelName(settings.savageLevel),
+                        _getSavageLevelName(context, settings.savageLevel),
                         style: GoogleFonts.oswald(
                           fontSize: 18 * s + 4,
                           fontWeight: FontWeight.w600,
@@ -165,12 +174,13 @@ class TimerScreen extends ConsumerWidget {
                   size: timerSize,
                   strokeWidth: 14 * s + 2,
                 ),
-                if (session.nextPhaseLabel != null) ...[
+                if (upNext != null) ...[
                   SizedBox(height: 14 * s),
                   SizedBox(
                     width: timerSize,
                     child: UpNextCard(
-                      phaseLabel: session.nextPhaseLabel!,
+                      phaseType: upNext.type,
+                      phaseLabel: upNext.label,
                       duration: session.formattedNextPhaseDuration,
                     ),
                   ),
@@ -200,8 +210,26 @@ class TimerScreen extends ConsumerWidget {
 
     final resetSize = 40 * s + 12;
     final playSize = 56 * s + 18;
+    final resetLabel = context.tr('timer.control.reset');
+    final skipLabel = context.tr('timer.control.skip');
+    final playLabel =
+        isRunning
+            ? context.tr('timer.control.pause')
+            : context.tr('timer.control.start');
 
-    final spacing = 18 * s + 2;
+    final sideLabelWidth = math.max(
+      _measureControlLabelWidth(context, resetLabel),
+      _measureControlLabelWidth(context, skipLabel),
+    );
+    final centerLabelWidth = _measureControlLabelWidth(context, playLabel);
+    final slotPadding = 12 * s + 2;
+    final sideSlotWidth = math.max(resetSize, sideLabelWidth + slotPadding);
+    final centerSlotWidth = math.max(playSize, centerLabelWidth + slotPadding);
+    final spacing = 12 * s + 2;
+
+    Widget inSlot(Widget child, double width) {
+      return SizedBox(width: width, child: Center(child: child));
+    }
 
     return FittedBox(
       fit: BoxFit.scaleDown,
@@ -211,53 +239,76 @@ class TimerScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Reset button
-          ControlButton(
-            icon: Icons.refresh,
-            onPressed:
-                (isRunning || isPaused || isCompleted)
-                    ? () {
-                      if (isRunning || isPaused) {
-                        _showResetConfirmDialog(context, timerService);
-                      } else {
-                        timerService.reset();
+          inSlot(
+            ControlButton(
+              icon: Icons.refresh,
+              onPressed:
+                  (isRunning || isPaused || isCompleted)
+                      ? () {
+                        if (isRunning || isPaused) {
+                          _showResetConfirmDialog(context, timerService);
+                        } else {
+                          timerService.reset();
+                        }
                       }
-                    }
-                    : null,
-            backgroundColor: Colors.white.withValues(alpha: 0.2),
-            iconColor: Colors.white,
-            size: resetSize,
-            label: 'Reset',
+                      : null,
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
+              iconColor: Colors.white,
+              size: resetSize,
+              label: resetLabel,
+            ),
+            sideSlotWidth,
           ),
           SizedBox(width: spacing),
           // Play/Pause button
-          PlayPauseButton(
-            isPlaying: isRunning,
-            showLabel: true,
-            size: playSize,
-            onPressed: () {
-              if (isIdle || isCompleted) {
-                timerService.start();
-              } else if (isRunning) {
-                timerService.pause();
-              } else if (isPaused) {
-                timerService.resume();
-              }
-            },
+          inSlot(
+            PlayPauseButton(
+              isPlaying: isRunning,
+              showLabel: true,
+              size: playSize,
+              onPressed: () {
+                if (isIdle || isCompleted) {
+                  timerService.start();
+                } else if (isRunning) {
+                  timerService.pause();
+                } else if (isPaused) {
+                  timerService.resume();
+                }
+              },
+            ),
+            centerSlotWidth,
           ),
           SizedBox(width: spacing),
           // Skip button
-          ControlButton(
-            icon: Icons.skip_next,
-            onPressed:
-                (isRunning || isPaused) ? () => timerService.skip() : null,
-            backgroundColor: Colors.white.withValues(alpha: 0.2),
-            iconColor: Colors.white,
-            size: resetSize,
-            label: 'Skip',
+          inSlot(
+            ControlButton(
+              icon: Icons.skip_next,
+              onPressed:
+                  (isRunning || isPaused) ? () => timerService.skip() : null,
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
+              iconColor: Colors.white,
+              size: resetSize,
+              label: skipLabel,
+            ),
+            sideSlotWidth,
           ),
         ],
       ),
     );
+  }
+
+  double _measureControlLabelWidth(BuildContext context, String label) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      ),
+      maxLines: 1,
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+
+    return painter.width;
   }
 
   void _showResetConfirmDialog(
@@ -268,21 +319,19 @@ class TimerScreen extends ConsumerWidget {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Reset Timer'),
-            content: const Text(
-              'Are you sure you want to reset? Current progress will be lost.',
-            ),
+            title: Text(context.tr('timer.reset_dialog.title')),
+            content: Text(context.tr('timer.reset_dialog.content')),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+                child: Text(context.tr('common.cancel')),
               ),
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                   timerService.reset();
                 },
-                child: const Text('Reset'),
+                child: Text(context.tr('common.reset')),
               ),
             ],
           ),
@@ -370,14 +419,14 @@ class TimerScreen extends ConsumerWidget {
     }
   }
 
-  String _getSavageLevelName(SavageLevel level) {
+  String _getSavageLevelName(BuildContext context, SavageLevel level) {
     switch (level) {
       case SavageLevel.level1:
-        return 'Mild';
+        return context.tr('timer.level.mild');
       case SavageLevel.level2:
-        return 'Medium';
+        return context.tr('timer.level.medium');
       case SavageLevel.level3:
-        return 'Savage';
+        return context.tr('timer.level.savage');
     }
   }
 

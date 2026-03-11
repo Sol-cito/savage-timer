@@ -91,6 +91,41 @@ flutter build ios --release
 # Then open ios/Runner.xcworkspace in Xcode to archive
 ```
 
+## Voice Generation (ElevenLabs)
+
+You can generate localized voice assets from script files:
+
+1. Edit `scripts/voice_scripts/en.json|en.txt`, `es.json|es.txt`, `ko.json|ko.txt` (JSON content).
+2. Set:
+   - `ELEVENLABS_API_KEY`
+   - `ELEVENLABS_MODEL_ID_<LANG>` (payload `model_id`)
+   - `ELEVENLABS_VOICE_ID_EN_MILD`
+   - `ELEVENLABS_VOICE_ID_EN_MEDIUM`
+   - `ELEVENLABS_VOICE_ID_EN_SAVAGE`
+   - `ELEVENLABS_VOICE_ID_EN_NEUTRAL`
+   - `ELEVENLABS_VOICE_ID_ES_MILD`
+   - `ELEVENLABS_VOICE_ID_ES_MEDIUM`
+   - `ELEVENLABS_VOICE_ID_ES_SAVAGE`
+   - `ELEVENLABS_VOICE_ID_ES_NEUTRAL`
+   - `ELEVENLABS_VOICE_ID_KO_MILD`
+   - `ELEVENLABS_VOICE_ID_KO_MEDIUM`
+   - `ELEVENLABS_VOICE_ID_KO_SAVAGE`
+   - `ELEVENLABS_VOICE_ID_KO_NEUTRAL`
+   - Optional per mode settings:
+     - `ELEVENLABS_STABILITY_<MODE>`
+     - `ELEVENLABS_SIMILARITY_BOOST_<MODE>`
+     - `ELEVENLABS_STYLE_<MODE>`
+     - `ELEVENLABS_SPEED_<MODE>`
+     - `ELEVENLABS_USE_SPEAKER_BOOST` or `ELEVENLABS_USE_SPEAKER_BOOST_<MODE>`
+   - (or place these in `.env`)
+3. Run:
+
+```bash
+python3 scripts/generate_voice_assets.py --language ko
+```
+
+Use `--dry-run` to validate script files without API calls.
+
 ---
 
 ## Project Structure

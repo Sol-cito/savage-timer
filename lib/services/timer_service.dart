@@ -62,6 +62,8 @@ class TimerService extends StateNotifier<WorkoutSession> {
            restDurationSeconds: settings.restDurationSeconds,
            enableWarmUpSet: settings.enableWarmUpSet,
            warmUpDurationSeconds: settings.warmUpDurationSeconds,
+           enableCoolDownSet: settings.enableCoolDownSet,
+           coolDownDurationSeconds: settings.coolDownDurationSeconds,
            remainingSeconds:
                settings.enableWarmUpSet
                    ? settings.warmUpDurationSeconds
@@ -89,6 +91,8 @@ class TimerService extends StateNotifier<WorkoutSession> {
         restDurationSeconds: settings.restDurationSeconds,
         enableWarmUpSet: settings.enableWarmUpSet,
         warmUpDurationSeconds: settings.warmUpDurationSeconds,
+        enableCoolDownSet: settings.enableCoolDownSet,
+        coolDownDurationSeconds: settings.coolDownDurationSeconds,
         remainingSeconds:
             settings.enableWarmUpSet
                 ? settings.warmUpDurationSeconds
@@ -111,6 +115,7 @@ class TimerService extends StateNotifier<WorkoutSession> {
       SessionPhase.warmUp => _settings.warmUpDurationSeconds,
       SessionPhase.round => _currentRoundDuration(),
       SessionPhase.rest => _settings.restDurationSeconds,
+      SessionPhase.coolDown => _settings.coolDownDurationSeconds,
     };
   }
 
@@ -288,6 +293,9 @@ class TimerService extends StateNotifier<WorkoutSession> {
     _lastSecondsVoiceTimer?.cancel();
 
     _cancelExerciseVoiceTimers();
+    // Skip is an explicit phase jump; cut any ongoing motivational voice
+    // so it never overlaps the next transition cue.
+    _audioService.stopVoice();
 
     if (state.state == SessionState.paused) {
       state = state.copyWith(state: SessionState.running);
@@ -361,6 +369,8 @@ class TimerService extends StateNotifier<WorkoutSession> {
       restDurationSeconds: _settings.restDurationSeconds,
       enableWarmUpSet: _settings.enableWarmUpSet,
       warmUpDurationSeconds: _settings.warmUpDurationSeconds,
+      enableCoolDownSet: _settings.enableCoolDownSet,
+      coolDownDurationSeconds: _settings.coolDownDurationSeconds,
       remainingSeconds:
           _settings.enableWarmUpSet
               ? _settings.warmUpDurationSeconds
@@ -500,15 +510,29 @@ class TimerService extends StateNotifier<WorkoutSession> {
       if (_settings.enableVibration) _vibrationService.roundEnd();
 
       if (state.isLastRound) {
-        // Workout complete — play count_finish
-        _playRoundFinishCue();
-        _timer?.cancel();
-        _audioService.stopKeepAlive();
-        if (_settings.enableVibration) _vibrationService.sessionComplete();
-        state = state.copyWith(
-          state: SessionState.completed,
-          remainingSeconds: 0,
-        );
+        if (_settings.enableCoolDownSet) {
+          // Final round done, start one-time cool-down phase.
+          _playCoolDownStartCue();
+          if (_settings.enableVibration) _vibrationService.roundStart();
+          _lastSecondsAlertTriggered = false;
+          _last10SecondsAlertTriggered = false;
+          state = state.copyWith(
+            phase: SessionPhase.coolDown,
+            remainingSeconds: _settings.coolDownDurationSeconds,
+            pausedDuringPreparation: false,
+          );
+          _recordPhaseStart();
+        } else {
+          // Workout complete — play count_finish
+          _playRoundFinishCue();
+          _timer?.cancel();
+          _audioService.stopKeepAlive();
+          if (_settings.enableVibration) _vibrationService.sessionComplete();
+          state = state.copyWith(
+            state: SessionState.completed,
+            remainingSeconds: 0,
+          );
+        }
       } else {
         // Start rest period — play count_rest
         _playRoundEndToRestCue();
@@ -546,22 +570,32 @@ class TimerService extends StateNotifier<WorkoutSession> {
       return;
     }
 
-    // Rest ended, start next round — play count_start
-    _playRoundStartCue();
-    if (_settings.enableVibration) _vibrationService.restEnd();
-    _lastSecondsAlertTriggered = false;
-    _last10SecondsAlertTriggered = false;
-    state = state.copyWith(
-      phase: SessionPhase.round,
-      currentRound: state.currentRound + 1,
-      roundDurationSeconds: _roundDurationForRound(state.currentRound + 1),
-      remainingSeconds: _roundDurationForRound(state.currentRound + 1),
-      pausedDuringPreparation: false,
-    );
-    _recordPhaseStart();
+    if (state.phase == SessionPhase.rest) {
+      // Rest ended, start next round — play count_start
+      _playRoundStartCue();
+      if (_settings.enableVibration) _vibrationService.restEnd();
+      _lastSecondsAlertTriggered = false;
+      _last10SecondsAlertTriggered = false;
+      state = state.copyWith(
+        phase: SessionPhase.round,
+        currentRound: state.currentRound + 1,
+        roundDurationSeconds: _roundDurationForRound(state.currentRound + 1),
+        remainingSeconds: _roundDurationForRound(state.currentRound + 1),
+        pausedDuringPreparation: false,
+      );
+      _recordPhaseStart();
 
-    _scheduleStartVoice();
-    _scheduleExerciseVoices();
+      _scheduleStartVoice();
+      _scheduleExerciseVoices();
+      return;
+    }
+
+    // Cool-down ended, finish workout.
+    _playRoundFinishCue();
+    _timer?.cancel();
+    _audioService.stopKeepAlive();
+    if (_settings.enableVibration) _vibrationService.sessionComplete();
+    state = state.copyWith(state: SessionState.completed, remainingSeconds: 0);
   }
 
   /// Round start cue: ring bell_3times and play count_start concurrently.
@@ -582,9 +616,22 @@ class TimerService extends StateNotifier<WorkoutSession> {
     );
   }
 
+  /// Cool-down start cue: ring bell_3times and play count_start_cooldown.
+  void _playCoolDownStartCue() {
+    _audioService.playBell3Times();
+    _audioService.playCountStartCoolDown(
+      _settings.savageLevel,
+      _settings.enableMotivationalSound,
+    );
+  }
+
   void _playStartCueForCurrentPhase() {
     if (state.phase == SessionPhase.warmUp) {
       _playWarmUpStartCue();
+      return;
+    }
+    if (state.phase == SessionPhase.coolDown) {
+      _playCoolDownStartCue();
       return;
     }
     _playRoundStartCue();

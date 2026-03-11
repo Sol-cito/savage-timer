@@ -13,6 +13,8 @@ void main() {
       expect(settings.restDurationSeconds, 30);
       expect(settings.enableWarmUpSet, false);
       expect(settings.warmUpDurationSeconds, 60);
+      expect(settings.enableCoolDownSet, false);
+      expect(settings.coolDownDurationSeconds, 60);
       expect(settings.totalRounds, 3);
       expect(settings.enableLastSecondsAlert, true);
       expect(settings.enableLast10SecondsClappingAlert, false);
@@ -52,6 +54,8 @@ void main() {
       expect(settings.restDurationSeconds, 30);
       expect(settings.enableWarmUpSet, false);
       expect(settings.warmUpDurationSeconds, 60);
+      expect(settings.enableCoolDownSet, false);
+      expect(settings.coolDownDurationSeconds, 60);
       expect(settings.totalRounds, 3);
       expect(settings.enableLastSecondsAlert, true);
       expect(settings.enableLast10SecondsClappingAlert, false);
@@ -97,6 +101,8 @@ void main() {
         restDurationSeconds: 45,
         enableWarmUpSet: true,
         warmUpDurationSeconds: 75,
+        enableCoolDownSet: true,
+        coolDownDurationSeconds: 60,
         totalRounds: 6,
         savageLevel: SavageLevel.level3,
         enableMotivationalSound: false,
@@ -284,6 +290,17 @@ void main() {
       expect(session.nextPhaseLabel, 'Finish');
     });
 
+    test('nextPhaseLabel returns Cool-down during last round when enabled', () {
+      const session = WorkoutSession(
+        state: SessionState.running,
+        phase: SessionPhase.round,
+        currentRound: 3,
+        totalRounds: 3,
+        enableCoolDownSet: true,
+      );
+      expect(session.nextPhaseLabel, 'Cool-down');
+    });
+
     test('nextPhaseLabel returns next round number during rest', () {
       const session = WorkoutSession(
         state: SessionState.running,
@@ -314,6 +331,21 @@ void main() {
       );
       expect(session.nextPhaseDurationSeconds, isNull);
     });
+
+    test(
+      'nextPhaseDurationSeconds returns cool-down duration on last round when enabled',
+      () {
+        const session = WorkoutSession(
+          state: SessionState.running,
+          phase: SessionPhase.round,
+          currentRound: 3,
+          totalRounds: 3,
+          enableCoolDownSet: true,
+          coolDownDurationSeconds: 75,
+        );
+        expect(session.nextPhaseDurationSeconds, 75);
+      },
+    );
 
     test('nextPhaseDurationSeconds returns round duration during rest', () {
       const session = WorkoutSession(
@@ -373,6 +405,13 @@ void main() {
         enableWarmUpSet: true,
       );
       expect(warmUp.phaseLabel, 'WARM-UP');
+
+      const coolDown = WorkoutSession(
+        state: SessionState.running,
+        phase: SessionPhase.coolDown,
+        enableCoolDownSet: true,
+      );
+      expect(coolDown.phaseLabel, 'COOL-DOWN');
     });
 
     test(
@@ -448,6 +487,24 @@ void main() {
       expect(session.elapsedSeconds, 25);
       expect(session.nextPhaseLabel, 'Round 1');
       expect(session.nextPhaseDurationSeconds, 60);
+    });
+
+    test('cool-down contributes to total and elapsed durations', () {
+      const session = WorkoutSession(
+        state: SessionState.running,
+        phase: SessionPhase.coolDown,
+        totalRounds: 2,
+        roundDurationSeconds: 60,
+        restDurationSeconds: 30,
+        enableCoolDownSet: true,
+        coolDownDurationSeconds: 45,
+        remainingSeconds: 20,
+      );
+
+      expect(session.totalDurationSeconds, 195);
+      expect(session.elapsedSeconds, 175);
+      expect(session.nextPhaseLabel, 'Finish');
+      expect(session.nextPhaseDurationSeconds, isNull);
     });
   });
 }
