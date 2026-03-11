@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:easy_localization/easy_localization.dart';
@@ -29,10 +30,13 @@ class SettingsScreen extends ConsumerWidget {
   void _guardTimerChange(
     BuildContext context,
     WidgetRef ref,
-    VoidCallback onChange,
+    FutureOr<void> Function() onChange,
   ) {
     if (!_isTimerActive(ref)) {
-      onChange();
+      final result = onChange();
+      if (result is Future<void>) {
+        unawaited(result);
+      }
       return;
     }
 
@@ -77,7 +81,10 @@ class SettingsScreen extends ConsumerWidget {
                 onPressed: () {
                   Navigator.pop(context);
                   ref.read(timerServiceProvider.notifier).reset();
-                  onChange();
+                  final result = onChange();
+                  if (result is Future<void>) {
+                    unawaited(result);
+                  }
                 },
                 child: Text(
                   context.tr('settings.guard.confirm'),
@@ -230,6 +237,50 @@ class SettingsScreen extends ConsumerWidget {
                     },
                   ),
                 ],
+                const SizedBox(height: 8),
+                _ToggleRow(
+                  label: context.tr('settings.label.cool_down_set'),
+                  value: settings.enableCoolDownSet,
+                  onChanged: (value) {
+                    _guardTimerChange(context, ref, () {
+                      settingsService.updateCoolDownSetEnabled(value);
+                    });
+                  },
+                ),
+                if (settings.enableCoolDownSet) ...[
+                  Text(
+                    context.tr('settings.hint.cool_down'),
+                    style: GoogleFonts.rajdhani(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _NavigationTile(
+                    title: context.tr(
+                      'settings.action.configure_cool_down_set',
+                    ),
+                    subtitle: context.tr(
+                      'settings.value.one_time_after_all_rounds',
+                      namedArgs: {
+                        'duration': _formatDuration(
+                          context,
+                          settings.coolDownDurationSeconds,
+                        ),
+                      },
+                    ),
+                    onTap: () {
+                      _guardTimerChange(context, ref, () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const CoolDownSetScreen(),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 14),
@@ -367,17 +418,6 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
 
-                // Motivational Sound toggle
-                _ToggleRow(
-                  label: context.tr('settings.label.motivational_voice'),
-                  value: settings.enableMotivationalSound,
-                  onChanged: (value) {
-                    _guardTimerChange(context, ref, () {
-                      settingsService.updateMotivationalSound(value);
-                    });
-                  },
-                ),
-
                 // Last 30s Voice Alert toggle
                 _ToggleRow(
                   label: context.tr('settings.label.last_30s_voice_alert'),
@@ -409,6 +449,70 @@ class SettingsScreen extends ConsumerWidget {
                       settingsService.updateVibration(value);
                     });
                   },
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Savage Level
+            _SettingsCard(
+              children: [
+                _SectionHeader(
+                  title: context.tr('settings.section.savage_level'),
+                  icon: Icons.whatshot_outlined,
+                ),
+                const SizedBox(height: 8),
+
+                // Motivational voice belongs with savage level controls.
+                _ToggleRow(
+                  label: context.tr('settings.label.motivational_voice'),
+                  value: settings.enableMotivationalSound,
+                  onChanged: (value) {
+                    _guardTimerChange(context, ref, () {
+                      settingsService.updateMotivationalSound(value);
+                    });
+                  },
+                ),
+                const SizedBox(height: 6),
+                Opacity(
+                  opacity: settings.enableMotivationalSound ? 1.0 : 0.35,
+                  child: IgnorePointer(
+                    ignoring: !settings.enableMotivationalSound,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (!settings.enableMotivationalSound) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            context.tr(
+                              'settings.hint.enable_voice_to_change_level',
+                            ),
+                            style: GoogleFonts.rajdhani(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 14),
+                        SavageLevelSelector(
+                          selectedLevel: settings.savageLevel,
+                          onChanged: (level) {
+                            _guardTimerChange(context, ref, () {
+                              settingsService.updateSavageLevel(level);
+                              if (settings.enableMotivationalSound) {
+                                ref
+                                    .read(audioServiceProvider)
+                                    .playExampleVoice(level);
+                              }
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        SavageLevelDescription(level: settings.savageLevel),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -446,55 +550,9 @@ class SettingsScreen extends ConsumerWidget {
                 _NavigationTile(
                   title: context.tr('settings.label.language'),
                   subtitle: context.tr(localeLabelKey(context.locale)),
-                  onTap: () => _showLanguagePicker(context),
+                  onTap: () => _showLanguagePicker(context, ref),
                 ),
               ],
-            ),
-            const SizedBox(height: 14),
-
-            // Savage Level
-            Opacity(
-              opacity: settings.enableMotivationalSound ? 1.0 : 0.35,
-              child: IgnorePointer(
-                ignoring: !settings.enableMotivationalSound,
-                child: _SettingsCard(
-                  children: [
-                    _SectionHeader(
-                      title: context.tr('settings.section.savage_level'),
-                      icon: Icons.whatshot_outlined,
-                    ),
-                    if (!settings.enableMotivationalSound) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        context.tr(
-                          'settings.hint.enable_voice_to_change_level',
-                        ),
-                        style: GoogleFonts.rajdhani(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 14),
-                    SavageLevelSelector(
-                      selectedLevel: settings.savageLevel,
-                      onChanged: (level) {
-                        _guardTimerChange(context, ref, () {
-                          settingsService.updateSavageLevel(level);
-                          if (settings.enableMotivationalSound) {
-                            ref
-                                .read(audioServiceProvider)
-                                .playExampleVoice(level);
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    SavageLevelDescription(level: settings.savageLevel),
-                  ],
-                ),
-              ),
             ),
             const SizedBox(height: 24),
 
@@ -558,7 +616,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _showLanguagePicker(BuildContext context) async {
+  Future<void> _showLanguagePicker(BuildContext context, WidgetRef ref) async {
     final currentLocale = context.locale;
     await showModalBottomSheet<void>(
       context: context,
@@ -605,7 +663,9 @@ class SettingsScreen extends ConsumerWidget {
                       onTap: () async {
                         Navigator.of(sheetContext).pop();
                         if (locale.languageCode != currentLocale.languageCode) {
-                          await context.setLocale(locale);
+                          _guardTimerChange(context, ref, () async {
+                            await context.setLocale(locale);
+                          });
                         }
                       },
                     ),
@@ -863,6 +923,102 @@ class WarmUpSetScreen extends ConsumerWidget {
                     divisions: 54,
                     onChanged: (value) {
                       settingsService.updateWarmUpDuration(value.toInt());
+                    },
+                  ),
+                ),
+                _SliderLabels(
+                  left: context.tr('settings.slider.min_30s'),
+                  right: context.tr('settings.slider.max_5_min'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDuration(BuildContext context, int seconds) {
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    final secondsShort = context.tr('common.seconds_short');
+    final minutesShort = context.tr('common.minutes_short');
+    if (minutes == 0) return '$secs$secondsShort';
+    if (secs == 0) return '$minutes$minutesShort';
+    return '$minutes$minutesShort $secs$secondsShort';
+  }
+}
+
+class CoolDownSetScreen extends ConsumerWidget {
+  const CoolDownSetScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsServiceProvider);
+    final settingsService = ref.read(settingsServiceProvider.notifier);
+
+    return Scaffold(
+      backgroundColor: Colors.grey[900],
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).maybePop(),
+          tooltip: context.tr('common.back'),
+        ),
+        title: Text(
+          context.tr('settings.section.cool_down_set'),
+          style: GoogleFonts.oswald(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 2,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          children: [
+            Text(
+              context.tr('settings.hint.cool_down_screen_description'),
+              style: GoogleFonts.rajdhani(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.65),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _SettingsCard(
+              children: [
+                _SectionHeader(
+                  title: context.tr('settings.section.cool_down_duration'),
+                  icon: Icons.ac_unit_rounded,
+                ),
+                const SizedBox(height: 8),
+                _ValueDisplay(
+                  value: _formatDuration(
+                    context,
+                    settings.coolDownDurationSeconds,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: Colors.white.withValues(alpha: 0.9),
+                    inactiveTrackColor: Colors.white.withValues(alpha: 0.15),
+                    thumbColor: Colors.white,
+                    overlayColor: Colors.white.withValues(alpha: 0.1),
+                    trackHeight: 4,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 8,
+                    ),
+                  ),
+                  child: Slider(
+                    value: settings.coolDownDurationSeconds.toDouble(),
+                    min: 30,
+                    max: 300,
+                    divisions: 54,
+                    onChanged: (value) {
+                      settingsService.updateCoolDownDuration(value.toInt());
                     },
                   ),
                 ),

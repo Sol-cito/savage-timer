@@ -170,6 +170,14 @@ class FakeAudioService implements AudioService {
   }
 
   @override
+  Future<void> playCountStartCoolDown(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
+    calls.add('playCountStartCoolDown_${level.name}_$enableMotivationalSound');
+  }
+
+  @override
   Future<void> playCount30Seconds(
     SavageLevel level,
     bool enableMotivationalSound,
@@ -331,6 +339,8 @@ void main() {
     bool enableLast10SecondsClappingAlert = false,
     bool enableWarmUpSet = false,
     int warmUpDuration = 60,
+    bool enableCoolDownSet = false,
+    int coolDownDuration = 60,
     int lastSecondsThreshold = 30,
     Random? random,
     int preparationSeconds = 0,
@@ -348,6 +358,8 @@ void main() {
         enableLast10SecondsClappingAlert: enableLast10SecondsClappingAlert,
         enableWarmUpSet: enableWarmUpSet,
         warmUpDurationSeconds: warmUpDuration,
+        enableCoolDownSet: enableCoolDownSet,
+        coolDownDurationSeconds: coolDownDuration,
         lastSecondsThreshold: lastSecondsThreshold,
       ),
       random: random,
@@ -484,6 +496,139 @@ void main() {
         async.elapse(Duration.zero);
       });
     });
+  });
+
+  group('TimerService cool-down set', () {
+    test('last round transitions to cool-down when enabled', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 5,
+          totalRounds: 1,
+          enableCoolDownSet: true,
+          coolDownDuration: 20,
+          preparationSeconds: 0,
+        );
+
+        service.start();
+        fakeAudio.clearCounters();
+        async.elapse(const Duration(seconds: 5));
+
+        expect(service.state.phase, SessionPhase.coolDown);
+        expect(service.state.state, SessionState.running);
+        expect(service.state.remainingSeconds, 20);
+        expect(
+          fakeAudio.calls.any(
+            (call) => call.startsWith('playCountStartCoolDown_'),
+          ),
+          isTrue,
+        );
+
+        service.reset();
+      });
+    });
+
+    test('cool-down completion finishes session', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 5,
+          totalRounds: 1,
+          enableCoolDownSet: true,
+          coolDownDuration: 4,
+          preparationSeconds: 0,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 5)); // enter cool-down
+        fakeAudio.clearCounters();
+
+        async.elapse(const Duration(seconds: 4));
+        expect(service.state.state, SessionState.completed);
+        expect(service.state.remainingSeconds, 0);
+        expect(fakeAudio.calls, contains('playCountFinish'));
+
+        service.reset();
+      });
+    });
+
+    test('skip during last round enters cool-down when enabled', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 60,
+          totalRounds: 1,
+          enableCoolDownSet: true,
+          coolDownDuration: 30,
+          preparationSeconds: 0,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 10));
+        fakeAudio.clearCounters();
+
+        service.skip();
+        expect(service.state.phase, SessionPhase.coolDown);
+        expect(service.state.state, SessionState.running);
+        expect(service.state.remainingSeconds, 30);
+        expect(
+          fakeAudio.calls.any(
+            (call) => call.startsWith('playCountStartCoolDown_'),
+          ),
+          isTrue,
+        );
+
+        service.reset();
+      });
+    });
+
+    test('skip during cool-down completes session', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 5,
+          totalRounds: 1,
+          enableCoolDownSet: true,
+          coolDownDuration: 30,
+          preparationSeconds: 0,
+        );
+
+        service.start();
+        async.elapse(const Duration(seconds: 5)); // enter cool-down
+        fakeAudio.clearCounters();
+
+        service.skip();
+        expect(service.state.state, SessionState.completed);
+        expect(service.state.remainingSeconds, 0);
+        expect(fakeAudio.calls, contains('playCountFinish'));
+
+        service.reset();
+      });
+    });
+
+    test(
+      'cool-down start cue respects motivational mode and level routing',
+      () {
+        fakeAsync((async) {
+          final service = createService(
+            roundDuration: 5,
+            totalRounds: 1,
+            level: SavageLevel.level3,
+            enableMotivationalSound: false,
+            enableCoolDownSet: true,
+            coolDownDuration: 20,
+            preparationSeconds: 0,
+          );
+
+          service.start();
+          fakeAudio.clearCounters();
+          async.elapse(const Duration(seconds: 5)); // enter cool-down
+
+          expect(
+            fakeAudio.calls,
+            contains('playCountStartCoolDown_level3_false'),
+          );
+
+          service.reset();
+        });
+      },
+    );
   });
 
   group('TimerService start voice', () {
@@ -2284,6 +2429,8 @@ void main() {
         service.skip();
         // stop() must NOT be called — it races with the transition sound
         expect(fakeAudio.calls, isNot(contains('stop')));
+        // But ongoing voice must be cut to avoid overlap with transition cues.
+        expect(fakeAudio.calls, contains('stopVoice'));
 
         service.reset();
       });
@@ -2340,6 +2487,28 @@ void main() {
         service.skip();
         expect(fakeAudio.calls, contains('playCountStart'));
         expect(fakeAudio.calls, contains('playBell3Times'));
+
+        service.reset();
+      });
+    });
+
+    test('skip stops voice before transition cue playback', () {
+      fakeAsync((async) {
+        final service = createService(
+          roundDuration: 5,
+          restDuration: 30,
+          totalRounds: 2,
+        );
+
+        service.start();
+        fakeAudio.clearCounters();
+        service.skip(); // round -> rest
+
+        final stopVoiceIndex = fakeAudio.calls.indexOf('stopVoice');
+        final countRestIndex = fakeAudio.calls.indexOf('playCountRest');
+        expect(stopVoiceIndex, isNonNegative);
+        expect(countRestIndex, isNonNegative);
+        expect(stopVoiceIndex, lessThan(countRestIndex));
 
         service.reset();
       });

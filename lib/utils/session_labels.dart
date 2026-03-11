@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/workout_session.dart';
 
-enum UpNextPhaseType { round, rest, finish }
+enum UpNextPhaseType { round, rest, coolDown, finish }
 
 class UpNextPhaseDisplay {
   const UpNextPhaseDisplay({required this.type, required this.label});
@@ -49,6 +49,8 @@ String localizedPhaseLabel(WorkoutSession session, {BuildContext? context}) {
       );
     case SessionPhase.rest:
       return _translate('timer.phase.rest', context: context);
+    case SessionPhase.coolDown:
+      return _translate('timer.phase.cool_down', context: context);
   }
 }
 
@@ -76,6 +78,12 @@ UpNextPhaseDisplay? localizedUpNextPhase(
 
   if (session.phase == SessionPhase.round) {
     if (session.isLastRound) {
+      if (session.enableCoolDownSet) {
+        return UpNextPhaseDisplay(
+          type: UpNextPhaseType.coolDown,
+          label: _translate('timer.up_next.cool_down', context: context),
+        );
+      }
       return UpNextPhaseDisplay(
         type: UpNextPhaseType.finish,
         label: _translate('timer.up_next.finish', context: context),
@@ -85,6 +93,13 @@ UpNextPhaseDisplay? localizedUpNextPhase(
     return UpNextPhaseDisplay(
       type: UpNextPhaseType.rest,
       label: _translate('timer.up_next.rest', context: context),
+    );
+  }
+
+  if (session.phase == SessionPhase.coolDown) {
+    return UpNextPhaseDisplay(
+      type: UpNextPhaseType.finish,
+      label: _translate('timer.up_next.finish', context: context),
     );
   }
 

@@ -152,6 +152,8 @@ class NotificationService {
         );
       case SessionPhase.rest:
         return 'timer.phase.rest'.tr();
+      case SessionPhase.coolDown:
+        return 'timer.phase.cool_down'.tr();
     }
   }
 }

@@ -26,6 +26,8 @@ class UpNextCard extends StatelessWidget {
         return Icons.fitness_center_rounded;
       case UpNextPhaseType.rest:
         return Icons.self_improvement_rounded;
+      case UpNextPhaseType.coolDown:
+        return Icons.ac_unit_rounded;
     }
   }
 

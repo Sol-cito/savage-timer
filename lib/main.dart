@@ -18,12 +18,17 @@ void main() async {
   await EasyLocalization.ensureInitialized();
 
   final sharedPreferences = await SharedPreferences.getInstance();
+  final deviceLocale = WidgetsBinding.instance.platformDispatcher.locale;
+  final startLocale = _resolveSupportedLocale(deviceLocale);
 
   runApp(
     EasyLocalization(
       supportedLocales: kSupportedLocales,
       path: 'assets/translations',
       fallbackLocale: kFallbackLocale,
+      startLocale: startLocale,
+      // Always follow device language on app launch.
+      saveLocale: false,
       useOnlyLangCode: true,
       child: ProviderScope(
         overrides: [
@@ -33,6 +38,15 @@ void main() async {
       ),
     ),
   );
+}
+
+Locale _resolveSupportedLocale(Locale locale) {
+  for (final supported in kSupportedLocales) {
+    if (supported.languageCode == locale.languageCode) {
+      return supported;
+    }
+  }
+  return kFallbackLocale;
 }
 
 class SavageTimerApp extends ConsumerStatefulWidget {

@@ -33,6 +33,7 @@
       "get_ready": "준비하세요",
       "done": "완료",
       "warm_up": "워밍업",
+      "cool_down": "쿨다운",
       "round": "라운드 {round}",
       "rest": "휴식"
     },
@@ -40,6 +41,7 @@
     "up_next": {
       "label": "다음",
       "rest": "휴식",
+      "cool_down": "쿨다운",
       "finish": "종료",
       "round": "라운드 {round}"
     },
@@ -67,11 +69,14 @@
       "legal": "법적 고지",
       "separate_round_duration": "라운드별 시간",
       "warm_up_set": "워밍업",
-      "warm_up_duration": "워밍업 시간"
+      "warm_up_duration": "워밍업 시간",
+      "cool_down_set": "쿨다운",
+      "cool_down_duration": "쿨다운 시간"
     },
     "label": {
       "separate_round_duration": "라운드별 시간 설정",
       "warm_up_set": "워밍업 세트",
+      "cool_down_set": "쿨다운 세트",
       "motivational_voice": "동기부여 음성",
       "last_30s_voice_alert": "마지막 30초 음성 알림",
       "last_10s_clapping_alert": "마지막 10초 박수 알림",
@@ -89,18 +94,22 @@
     },
     "hint": {
       "warm_up": "라운드 1 전에 한 번 실행되어 몸을 풀 수 있습니다.",
+      "cool_down": "마지막 라운드 후 한 번 실행되어 마무리 전에 회복할 수 있습니다.",
       "enable_voice_to_change_level": "레벨 변경을 위해 동기부여 음성을 켜세요",
       "set_duration_per_round": "각 라운드의 시간을 설정하세요",
-      "warm_up_screen_description": "운동 라운드 시작 전에 한 번만 워밍업이 실행됩니다."
+      "warm_up_screen_description": "운동 라운드 시작 전에 한 번만 워밍업이 실행됩니다.",
+      "cool_down_screen_description": "마지막 라운드 후 운동이 종료되기 전에 한 번만 쿨다운이 실행됩니다."
     },
     "action": {
       "set_round_durations": "라운드 시간 설정",
       "configure_warm_up_set": "워밍업 설정",
+      "configure_cool_down_set": "쿨다운 설정",
       "reset_to_defaults": "기본값으로 초기화"
     },
     "value": {
       "rounds_configured": "{rounds}개 라운드 설정됨",
       "one_time_before_round": "라운드 {round} 전 1회 {duration}",
+      "one_time_after_all_rounds": "모든 라운드 후 1회 {duration}",
       "round_title": "라운드 {round}"
     },
     "slider": {

@@ -33,6 +33,7 @@
       "get_ready": "PREPÁRATE",
       "done": "HECHO",
       "warm_up": "CALENTAMIENTO",
+      "cool_down": "ENFRIAMIENTO",
       "round": "RONDA {round}",
       "rest": "DESCANSO"
     },
@@ -40,6 +41,7 @@
     "up_next": {
       "label": "SIGUE",
       "rest": "Descanso",
+      "cool_down": "Enfriamiento",
       "finish": "Finalizar",
       "round": "Ronda {round}"
     },
@@ -67,11 +69,14 @@
       "legal": "LEGAL",
       "separate_round_duration": "DURACIÓN POR RONDA",
       "warm_up_set": "CALENTAMIENTO",
-      "warm_up_duration": "DURACIÓN DE CALENTAMIENTO"
+      "warm_up_duration": "DURACIÓN DE CALENTAMIENTO",
+      "cool_down_set": "ENFRIAMIENTO",
+      "cool_down_duration": "DURACIÓN DE ENFRIAMIENTO"
     },
     "label": {
       "separate_round_duration": "Duración por ronda",
       "warm_up_set": "Calentamiento",
+      "cool_down_set": "Enfriamiento",
       "motivational_voice": "Voz motivacional",
       "last_30s_voice_alert": "Aviso de voz en últimos 30s",
       "last_10s_clapping_alert": "Aplausos en últimos 10s",
@@ -89,18 +94,22 @@
     },
     "hint": {
       "warm_up": "Se ejecuta una vez antes de la Ronda 1 para entrar en ritmo.",
+      "cool_down": "Se ejecuta una vez tras la última ronda para recuperarte antes de terminar.",
       "enable_voice_to_change_level": "Activa Voz motivacional para cambiar el nivel",
       "set_duration_per_round": "Configura una duración para cada ronda",
-      "warm_up_screen_description": "Este calentamiento único se ejecuta antes de que empiecen tus rondas."
+      "warm_up_screen_description": "Este calentamiento único se ejecuta antes de que empiecen tus rondas.",
+      "cool_down_screen_description": "Este enfriamiento único se ejecuta después de la última ronda antes de completar el entrenamiento."
     },
     "action": {
       "set_round_durations": "Configurar duraciones por ronda",
       "configure_warm_up_set": "Configurar calentamiento",
+      "configure_cool_down_set": "Configurar enfriamiento",
       "reset_to_defaults": "Restablecer valores por defecto"
     },
     "value": {
       "rounds_configured": "{rounds} rondas configuradas",
       "one_time_before_round": "Una vez: {duration} antes de la Ronda {round}",
+      "one_time_after_all_rounds": "Una vez: {duration} después de todas las rondas",
       "round_title": "RONDA {round}"
     },
     "slider": {

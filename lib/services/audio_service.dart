@@ -479,6 +479,27 @@ class AudioService {
     }
   }
 
+  /// Cool-down cue uses the same localized count folder routing.
+  Future<void> playCountStartCoolDown(
+    SavageLevel level,
+    bool enableMotivationalSound,
+  ) async {
+    final folder = _getCountFolder(level, enableMotivationalSound);
+    try {
+      final manifest = await _loadAssetManifest();
+      for (final languageCode in _voiceLanguageSearchOrder()) {
+        final path =
+            'sounds/$languageCode/$folder/count/count_start_cooldown.mp3';
+        if (_hasAssetPath(manifest, path)) {
+          await _playCountPath(path);
+          return;
+        }
+      }
+    } catch (_) {
+      // Asset manifest unavailable, skip cue playback.
+    }
+  }
+
   Future<void> playCount30Seconds(
     SavageLevel level,
     bool enableMotivationalSound,

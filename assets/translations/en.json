@@ -33,6 +33,7 @@
       "get_ready": "GET READY",
       "done": "DONE",
       "warm_up": "WARM-UP",
+      "cool_down": "COOL-DOWN",
       "round": "ROUND {round}",
       "rest": "REST"
     },
@@ -40,6 +41,7 @@
     "up_next": {
       "label": "UP NEXT",
       "rest": "Rest",
+      "cool_down": "Cool-down",
       "finish": "Finish",
       "round": "Round {round}"
     },
@@ -67,11 +69,14 @@
       "legal": "LEGAL",
       "separate_round_duration": "SEPARATE ROUND DURATION",
       "warm_up_set": "WARM-UP SET",
-      "warm_up_duration": "WARM-UP DURATION"
+      "warm_up_duration": "WARM-UP DURATION",
+      "cool_down_set": "COOL-DOWN SET",
+      "cool_down_duration": "COOL-DOWN DURATION"
     },
     "label": {
       "separate_round_duration": "Separate Round Duration",
       "warm_up_set": "Warm-up Set",
+      "cool_down_set": "Cool-down Set",
       "motivational_voice": "Motivational Voice",
       "last_30s_voice_alert": "Last 30s Voice Alert",
       "last_10s_clapping_alert": "Last 10s Clapping Alert",
@@ -89,18 +94,22 @@
     },
     "hint": {
       "warm_up": "Runs once before Round 1 so you can ease in and lock your pace.",
+      "cool_down": "Runs once after your final round so you can recover before finishing.",
       "enable_voice_to_change_level": "Enable Motivational Voice to change level",
       "set_duration_per_round": "Set a duration for each round",
-      "warm_up_screen_description": "This one-time warm-up runs before your workout rounds begin."
+      "warm_up_screen_description": "This one-time warm-up runs before your workout rounds begin.",
+      "cool_down_screen_description": "This one-time cool-down runs after your final round before the workout completes."
     },
     "action": {
       "set_round_durations": "Set Round Durations",
       "configure_warm_up_set": "Configure Warm-up Set",
+      "configure_cool_down_set": "Configure Cool-down Set",
       "reset_to_defaults": "Reset to Defaults"
     },
     "value": {
       "rounds_configured": "{rounds} rounds configured",
       "one_time_before_round": "One-time {duration} before Round {round}",
+      "one_time_after_all_rounds": "One-time {duration} after all rounds",
       "round_title": "ROUND {round}"
     },
     "slider": {

@@ -58,3 +58,6 @@ android/.kotlin/
 
 # Build script output
 build_output/
+
+# ElevenLabs voice generation cache
+scripts/.elevenlabs_voice_cache.json
